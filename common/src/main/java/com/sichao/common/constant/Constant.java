@@ -1,0 +1,39 @@
+package com.sichao.common.constant;
+
+/**
+ * @Description: 公共模块-常量类
+ * @author: sjc
+ * @createTime: 2023年04月26日 22:35
+ */
+
+public class Constant {
+//    public static final int SUCCESS_CODE = 200; //请求成功
+//    public static final int FAILURE_CODE = 500; //服务器内部错误
+    public static final int SUCCESS_CODE = 20000; //请求成功
+    public static final int FAILURE_CODE = 20001; //服务器内部错误
+    public static final int TOKEN_EXPIRE_CODE = 20002; //登录过期
+
+    public static final int PARAMS_ERROR_CODE = 400; //请求参数错误
+    public static final int UNAUTHORIZED_CODE = 401; //未授权
+    public static final int FORBIDDEN_CODE = 403; //禁止访问
+
+    public static final String SUCCESS_MESSAGE = "请求成功";
+    public static final String FAILURE_MESSAGE = "服务器内部错误";
+    public static final String TOKEN_EXPIRE_MESSAGE = "登录过期";
+    public static final String PARAMS_ERROR_MESSAGE = "请求参数错误";
+    public static final String UNAUTHORIZED_MESSAGE = "未授权";
+    public static final String FORBIDDEN_MESSAGE = "禁止访问";
+
+    public static final String TOKEN = "token";
+    public static final String NEW_TOKEN = "newToken";
+    public static final String COOKIE_EXPIRE = "cookieExpire";
+
+    public static final long ACCESS_TOKEN_EXPIRE = 1000 * 60 * 60 * 24;//单为毫秒，1天
+    public static final long REFRESH_TOKEN_EXPIRE = 1000 * 60 * 60 * 24 * 5;//单位毫秒，5天
+
+    //TODO 应该根据配置文件数据注入到这里
+    public static final String TOKEN_SECRET_KEY = "ukc8BDbRigUDaY6pZFfWus2jZWLPHO";//token秘钥（每个公司都会各自生成不同的秘钥）
+    public static final long TOKEN_SECRET_KEY_DAY_PREFIX = 1000 * 60 * 60 * 24 * 15;//token秘钥前缀过期时间 TODO
+
+
+}
