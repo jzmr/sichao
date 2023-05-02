@@ -11,10 +11,14 @@ import com.sichao.common.utils.JwtUtils;
 import com.sichao.common.utils.MD5;
 import com.sichao.userService.entity.User;
 import com.sichao.userService.entity.vo.RegisterVo;
+import com.sichao.userService.entity.vo.UpdateInfoVo;
+import com.sichao.userService.entity.vo.UpdatePasswordVo;
+import com.sichao.userService.entity.vo.UserInfoVo;
 import com.sichao.userService.mapper.UserMapper;
 import com.sichao.userService.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -85,7 +89,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setStatus(true);//用户可用
 
         //设置默认头像
-        user.setHeadUrl("http://thirdwx.qlogo.cn/mmopen/vi_32/DYAIOgq83eoj0hHXhgJNOTSOFsS4uZs8x1ConecaVOB8eIl115xmJZcT4oCicvia7wMEufibKtTLqiaJeanU2Lpg3w/132");
+        user.setAvatarUrl("http://thirdwx.qlogo.cn/mmopen/vi_32/DYAIOgq83eoj0hHXhgJNOTSOFsS4uZs8x1ConecaVOB8eIl115xmJZcT4oCicvia7wMEufibKtTLqiaJeanU2Lpg3w/132");
         baseMapper.insert(user);
     }
 
@@ -103,7 +107,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         User userOne = baseMapper.selectOne(wrapper);
         //4、判断是否能登录成功
         if (userOne == null || !MD5.verify(password, userOne.getPassword())) {//MD5解密
-            throw new sichaoException(20001, "手机号或密码错误，登录失败");
+            throw new sichaoException(Constant.FAILURE_CODE, "手机号或密码错误，登录失败");
         }
         //5、登录成功，使用JWT工具类生成token字符串
         //传入主体部分，生成有效期1天的token字符串的方法//传入id和昵称（注意，要在查了数据库生成的对象中取值）
@@ -116,6 +120,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 TimeUnit.MILLISECONDS);
 
         return jwtToken;
+    }
+    //根据token信息获取用户信息（密码除外）
+    @Override
+    public UserInfoVo getUserInfoByToken(long id) {
+        User user = baseMapper.selectById(id);
+        UserInfoVo userInfo = new UserInfoVo();
+        BeanUtils.copyProperties(user, userInfo);
+        return userInfo;
     }
 
     //注销
@@ -135,6 +147,73 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         boolean isDisabled=baseMapper.userIsDisabled(userId);//true为可用，false为禁用
         return !isDisabled;//取反
     }
+
+    //修改密码，修改完成之后注销账号
+    @Transactional
+    @Override
+    public void updatePassword(String token,String userId, UpdatePasswordVo updatePasswordVo) {
+        //获取修改密码的数据
+        String phone = updatePasswordVo.getPhone();//手机号
+        String oldPassword = updatePasswordVo.getOldPassword();//原密码
+        String newPassword = updatePasswordVo.getNewPassword();//新密码
+        String code = updatePasswordVo.getCode();//验证码
+
+        //校验传入参数什么合法，不合法则抛出异常
+        regexMatch3(phone, oldPassword,newPassword, code);
+
+        //判断验证码是否一致 TODO
+//        String redisCode = stringRedisTemplate.opsForValue().get(PrefixKeyConstant.SMS_CODE_PREFIX + phone);
+//        if(!code.equals(redisCode)){
+//            throw new sichaoException(Constant.FAILURE_CODE,"验证码错误，修改密码失败");
+//        }
+        //判断原密码与新密码是否一致
+        if(oldPassword.equals(newPassword)){
+            throw new sichaoException(Constant.FAILURE_CODE,"原密码与新密码不能相同");
+        }
+        //判断原密码与数据库的密码是否一致
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.eq("id",userId);
+        wrapper.eq("phone",phone);
+        wrapper.select("id","phone","password");
+        User user = baseMapper.selectOne(wrapper);
+        if(!MD5.verify(oldPassword, user.getPassword())){
+            throw new sichaoException(Constant.FAILURE_CODE, "原密码错误，修改密码失败");
+        }
+        //修改密码
+        user.setPassword(MD5.saltEncryption(newPassword));
+        baseMapper.updateById(user);
+        //注销原先的登录token
+        try {
+            this.logout(token);
+        }catch (Exception e){
+            throw new sichaoException(Constant.FAILURE_CODE,"修改密码失败，请重新修改密码");
+        }
+    }
+
+    //根据用户id查看用户信息（密码除外）
+    @Override
+    public UserInfoVo getUserInfoById(long id) {
+        User user = baseMapper.selectById(id);
+        UserInfoVo userInfo = new UserInfoVo();
+        BeanUtils.copyProperties(user, userInfo);
+        //查看是否关注该用户 TODO
+        return userInfo;
+    }
+
+    //修改用户个人信息（头像、密码除外）
+    @Override
+    public void updateInfo(long userId, UpdateInfoVo updateInfoVo) {
+        //创建模版对象(这里的正则表达式不需要带斜杠“/”)
+        Pattern p = Pattern.compile("^.{2,8}$");//校验昵称/^.{2,8}$/
+        Matcher m = p.matcher(updateInfoVo.getNickname());//进行匹配，//m.find()为true什么匹配，为false说明不匹配
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "昵称格式不正确，昵称最少2位、最多8位");
+        //修改信息
+        User user = new User();
+        BeanUtils.copyProperties(updateInfoVo,user);//对象拷贝（源，目标）
+        user.setId(userId);
+        baseMapper.updateById(user);
+    }
+
 
 
     //校验传入参数什么合法：昵称，手机号，密码，验证码
@@ -176,6 +255,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         p = Pattern.compile("^.{8,20}$");//校验密码/^.{8,20}$/
         m = p.matcher(password);
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位");
+    }
+
+    //校验传入参数什么合法：手机号，原密码，新密码，验证码
+    public void regexMatch3(String phone, String oldPassword, String newPassword, String code) {
+        //做非空判断(之所以在后端做非空判断而不在前端做，是因为前端的数据不一定可靠，任意被恶意篡改)
+        if (!StringUtils.hasText(code) || !StringUtils.hasText(phone) ||
+                !StringUtils.hasText(oldPassword) || !StringUtils.hasText(newPassword)) {
+            throw new sichaoException(Constant.FAILURE_CODE, "数据为空，修改密码失败");
+        }
+
+        //创建模版对象(这里的正则表达式不需要带斜杠“/”)
+        Pattern p = Pattern.compile("^1[3-9]\\d{9}$");//校验手机号(匹配大陆地区手机号)/^1[3-9]\d{9}$/
+        Matcher m = p.matcher(phone);//进行匹配，//m.find()为true什么匹配，为false说明不匹配
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "手机号码格式不正确");
+
+        p = Pattern.compile("^[0-9]{6}$");//校验验证码/^[0-9]{6}$/
+        m = p.matcher(code);
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "验证码格式不正确，验证码为6位数字");
+
+        p = Pattern.compile("^.{8,20}$");//校验密码/^.{8,20}$/
+        m = p.matcher(oldPassword);
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位");
+
+        p = Pattern.compile("^.{8,20}$");//校验密码/^.{8,20}$/
+        m = p.matcher(newPassword);
         if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位");
     }
 

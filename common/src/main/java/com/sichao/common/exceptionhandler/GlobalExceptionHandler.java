@@ -30,9 +30,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(sichaoException.class)//指定出现什么异常执行这个方法
     @ResponseBody//为了能够返回数据
     public R error(sichaoException e){
-        log.error(e.getMessage());//输出简略的异常信息到文件上
-        log.error(e.getMsg());
-        e.printStackTrace();
+        log.error(e.getMsg());//输出简略的异常信息
+        e.printStackTrace();//TODO 开发时打开，生产时关闭
         return R.error().code(e.getCode()).message(e.getMsg());
     }
 

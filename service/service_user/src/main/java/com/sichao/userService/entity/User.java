@@ -37,11 +37,11 @@ public class User implements Serializable {
     @TableField("phone")
     private String phone;
 
-    @Schema(description = "密码")
+    @Schema(description = "密码(密码至少为8位、最多20位)")
     @TableField("password")
     private String password;
 
-    @Schema(description = "昵称")
+    @Schema(description = "昵称(最少2位、最多8位)")
     @TableField("nickname")
     private String nickname;
 
@@ -54,16 +54,16 @@ public class User implements Serializable {
     private Byte age;
 
     @Schema(description = "头像url")
-    @TableField("head_url")
-    private String headUrl;
+    @TableField("avatar_url")
+    private String avatarUrl;
 
-    @Schema(description = "个人签名")
+    @Schema(description = "个人签名(最多255个字符)")
     @TableField("sign")
     private String sign;
 
     @Schema(description = "生日")
-    @TableField("birthdate")
-    private LocalDate birthdate;
+    @TableField("birthday")
+    private LocalDate birthday;
 
     @Schema(description = "粉丝数")
     @TableField("fans_count")

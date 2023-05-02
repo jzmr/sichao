@@ -64,7 +64,7 @@ public final class MD5 {
         return new String(cs);
     }
 
-    //验证明文和加盐后的MD5码是否匹配
+    //验证明文和加盐后的MD5码是否匹配,password为加密的密码，md5为以加盐MD5加密的密码
     public static boolean verify(String password, String md5) {
         //先从MD5码中取出之前加的“盐”和加“盐”后生成的MD5码
         char[] cs1 = new char[32];
