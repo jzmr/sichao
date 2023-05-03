@@ -27,20 +27,20 @@ public class BlogComment implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "评论id")
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private String id;
 
     @Schema(description = "博客id")
     @TableField("blog_id")
-    private Long blogId;
+    private String blogId;
 
     @Schema(description = "父评论id（无父评论时为0）")
     @TableField("parent_id")
-    private Long parentId;
+    private String parentId;
 
     @Schema(description = "用户id")
     @TableField("creator_id")
-    private Long creatorId;
+    private String creatorId;
 
     @Schema(description = "评论内容")
     @TableField("comment_content")

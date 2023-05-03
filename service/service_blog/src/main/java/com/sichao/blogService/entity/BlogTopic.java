@@ -27,8 +27,8 @@ public class BlogTopic implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "话题id")
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private String id;
 
     @Schema(description = "话题名称")
     @TableField("topic_title")
@@ -44,7 +44,7 @@ public class BlogTopic implements Serializable {
 
     @Schema(description = "话题创建者ID")
     @TableField("creator_id")
-    private Long creatorId;
+    private String creatorId;
 
     @Schema(description = "话题热度")
     @TableField("topic_hot")

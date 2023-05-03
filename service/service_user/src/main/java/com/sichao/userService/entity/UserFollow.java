@@ -29,15 +29,15 @@ public class UserFollow implements Serializable {
 
     @Schema(description = "用户关注用户关系id")
     @TableId(value = "id", type = IdType.ASSIGN_ID)//设置主键策略
-    private Long id;
+    private String id;
 
     @Schema(description = "粉丝id，即发起关注的用户id")
     @TableField("follower_id")
-    private Long followerId;
+    private String followerId;
 
     @Schema(description = "关注id，即被关注的用户id")
     @TableField("following_id")
-    private Long followingId;
+    private String followingId;
 
     @Schema(description = "状态，1表示已关注，0表示取消关注（使用status字段表示关注状态，避免频繁插入、删除数据）")
     @TableField("`status`")

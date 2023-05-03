@@ -16,7 +16,7 @@ public class UserInfoVo {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "用户id")
-    private Long id;
+    private String id;
 
     @Schema(description = "手机号")
     private String phone;

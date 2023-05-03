@@ -27,16 +27,16 @@ public class BlogTopicRelation implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "博客与话题关系id")
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private String id;
 
     @Schema(description = "话题id")
     @TableField("topic_id")
-    private Long topicId;
+    private String topicId;
 
     @Schema(description = "博客id")
     @TableField("blog_id")
-    private Long blogId;
+    private String blogId;
 
     @Schema(description = "是否逻辑删除：1（true）、0（false），默认为0")
     @TableField("is_deleted")

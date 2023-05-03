@@ -27,16 +27,16 @@ public class BlogCommentLikeUser implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "用户点赞评论关系id")
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private String id;
 
     @Schema(description = "评论id")
     @TableField("comment_id")
-    private Long commentId;
+    private String commentId;
 
     @Schema(description = "用户id")
     @TableField("user_id")
-    private Long userId;
+    private String userId;
 
     @Schema(description = "是否逻辑删除：1（true）、0（false），默认为0")
     @TableField("is_deleted")

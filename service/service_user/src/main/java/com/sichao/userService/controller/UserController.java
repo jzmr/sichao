@@ -59,7 +59,7 @@ public class UserController {
         //threadLocal中无数据时说明未登录
         HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
         if(map==null)return R.error().message("未登录");
-        UserInfoVo userInfo=userService.getUserInfoByToken(Long.parseLong(map.get("userId")));
+        UserInfoVo userInfo=userService.getUserInfoByToken(map.get("userId"));
         return R.ok().data("userInfo",userInfo);
     }
     //注销
@@ -95,7 +95,7 @@ public class UserController {
     //根据用户id查看用户信息（密码除外）
     @Operation(summary = "根据用户id查看用户信息（密码除外）")
     @GetMapping("/getUserInfoById/{id}")
-    public R getUserInfoById(@PathVariable("id") long id){
+    public R getUserInfoById(@PathVariable("id") String id){
         UserInfoVo userInfo = userService.getUserInfoById(id);
         return R.ok().data("userInfo",userInfo);
     }
@@ -109,7 +109,7 @@ public class UserController {
         //threadLocal中无数据时说明未登录
         HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
         if(map==null)return R.error().message("未登录");
-        userService.updateInfo(Long.parseLong(map.get("userId")),updateInfoVo);//修改信息
-        return getUserInfoById(Long.parseLong(map.get("userId")));//查询修改后的信息并返回
+        userService.updateInfo(map.get("userId"),updateInfoVo);//修改信息
+        return getUserInfoById(map.get("userId"));//查询修改后的信息并返回
     }
 }

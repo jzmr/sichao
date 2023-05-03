@@ -22,7 +22,7 @@ public interface UserService extends IService<User> {
     //登录
     String login(User user);
     //根据token信息获取用户信息（密码除外）
-    UserInfoVo getUserInfoByToken(long id);
+    UserInfoVo getUserInfoByToken(String id);
     //注销
     void logout(String token);
     //查看用户是否被禁用
@@ -30,7 +30,7 @@ public interface UserService extends IService<User> {
     //修改密码
     void updatePassword(String token,String userId, UpdatePasswordVo updatePasswordVo);
     //根据用户id查看用户信息（密码除外）
-    UserInfoVo getUserInfoById(long id);
+    UserInfoVo getUserInfoById(String id);
     //修改用户个人信息（头像、密码除外）
-    void updateInfo(long userId, UpdateInfoVo updateInfoVo);
+    void updateInfo(String userId, UpdateInfoVo updateInfoVo);
 }

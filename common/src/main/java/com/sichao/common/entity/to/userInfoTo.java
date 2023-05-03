@@ -15,6 +15,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor // 无参构造器
 @AllArgsConstructor //有参构造器
 public class userInfoTo {
-    private long userId;//用户id
+    private String userId;//用户id
     private String nickname;//用户昵称
 }

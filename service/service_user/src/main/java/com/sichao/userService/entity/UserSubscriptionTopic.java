@@ -28,15 +28,15 @@ public class UserSubscriptionTopic implements Serializable {
 
     @Schema(description = "用户订阅话题关系id")
     @TableId(value = "id", type = IdType.ASSIGN_ID)
-    private Long id;
+    private String id;
 
     @Schema(description = "用户id")
     @TableField("user_id")
-    private Long userId;
+    private String userId;
 
     @Schema(description = "话题id")
     @TableField("topic_id")
-    private Long topicId;
+    private String topicId;
 
     @Schema(description = "状态，1表示已订阅，0表示取消订阅（使用status字段表示订阅状态，避免频繁插入、删除数据）")
     @TableField("`status`")

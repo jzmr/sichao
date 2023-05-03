@@ -67,7 +67,7 @@ public class TokenRefreshInterceptor implements HandlerInterceptor {
             if (userInfoStr != null) {//续签时间不过期
                 //获取当前用户信息
                 userInfoTo userInfoTo = JSON.parseObject(userInfoStr, userInfoTo.class);
-                String userId = String.valueOf(userInfoTo.getUserId());
+                String userId = userInfoTo.getUserId();
                 String nickname = userInfoTo.getNickname();
                 //根据续签token获取信息用来构建新token,1天
                 String newJwtToken = JwtUtils.getJwtToken(userId, nickname, Constant.ACCESS_TOKEN_EXPIRE);

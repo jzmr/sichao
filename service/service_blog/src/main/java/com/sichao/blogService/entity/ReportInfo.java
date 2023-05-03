@@ -27,12 +27,12 @@ public class ReportInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "举报id")
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private String id;
 
     @Schema(description = "发起举报的用户id")
     @TableField("user_id")
-    private Long userId;
+    private String userId;
 
     @Schema(description = "举报类型（0-用户、1-博客、2-话题。。。）")
     @TableField("report_item_type")
@@ -40,7 +40,7 @@ public class ReportInfo implements Serializable {
 
     @Schema(description = "被举报事物id（用户id、博客id、话题id。。。）")
     @TableField("report_item_id")
-    private Long reportItemId;
+    private String reportItemId;
 
     @Schema(description = "举报原因（0-人身攻击，1-色情暴力，2-虚假信息。。。）")
     @TableField("report_reason")

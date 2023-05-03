@@ -121,7 +121,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
     //根据token信息获取用户信息（密码除外）
     @Override
-    public UserInfoVo getUserInfoByToken(long id) {
+    public UserInfoVo getUserInfoByToken(String id) {
         User user = baseMapper.selectById(id);
         UserInfoVo userInfo = new UserInfoVo();
         BeanUtils.copyProperties(user, userInfo);
@@ -190,7 +190,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     //根据用户id查看用户信息（密码除外）
     @Override
-    public UserInfoVo getUserInfoById(long id) {
+    public UserInfoVo getUserInfoById(String id) {
         User user = baseMapper.selectById(id);
         UserInfoVo userInfo = new UserInfoVo();
         BeanUtils.copyProperties(user, userInfo);
@@ -200,7 +200,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     //修改用户个人信息（头像、密码除外）
     @Override
-    public void updateInfo(long userId, UpdateInfoVo updateInfoVo) {
+    public void updateInfo(String userId, UpdateInfoVo updateInfoVo) {
         //创建模版对象(这里的正则表达式不需要带斜杠“/”)
         Pattern p = Pattern.compile("^.{2,8}$");//校验昵称/^.{2,8}$/
         Matcher m = p.matcher(updateInfoVo.getNickname());//进行匹配，//m.find()为true什么匹配，为false说明不匹配

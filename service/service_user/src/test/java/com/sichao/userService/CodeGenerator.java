@@ -64,7 +64,7 @@ public class CodeGenerator{
                 .naming(NamingStrategy.underline_to_camel)
                 .logicDeleteColumnName("isDelete")//逻辑删除字段数据库字段
                 .enableTableFieldAnnotation()//开启开启实体生成时字段注解
-                .idType(IdType.AUTO)//设置主键类型
+                .idType(IdType.ASSIGN_ID)//设置主键类型
 
 
 //                <-----controller层----->

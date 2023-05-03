@@ -27,11 +27,11 @@ public class User implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    //IdType.ASSIGN_ID      Long,Integer,String(支持自动转换为 String 类型，但数值类型不支持自动转换，需精准匹配，例如返回 Long，实体主键就不支持定义为 Integer)
-    //IdType.ASSIGN_UUID    String(默认不含中划线的 UUID 生成)
+    //IdType.ASSIGN_ID      19位数字      Long,Integer,String(支持自动转换为 String 类型，但数值类型不支持自动转换，需精准匹配，例如返回 Long，实体主键就不支持定义为 Integer)
+    //IdType.ASSIGN_UUID    32位数字+字母 String(默认不含中划线的 UUID 生成)
     @Schema(description = "用户id")
     @TableId(value = "id", type = IdType.ASSIGN_ID)//设置主键策略
-    private Long id;
+    private String id;
 
     @Schema(description = "手机号")
     @TableField("phone")
