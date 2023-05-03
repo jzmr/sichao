@@ -5,14 +5,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * <p>
- * 用户订阅用户关系表 前端控制器
+ * 用户关注用户关系id 前端控制器
  * </p>
  *
  * @author jicong
- * @since 2023-04-28
+ * @since 2023-05-03
  */
 @RestController
-@RequestMapping("/userService/user-subscription-user")
-public class UserSubscriptionUserController {
+@RequestMapping("/userService/user-follow")
+public class UserFollowController {
 
 }

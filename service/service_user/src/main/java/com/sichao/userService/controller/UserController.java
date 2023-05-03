@@ -8,7 +8,7 @@ import com.sichao.userService.entity.vo.RegisterVo;
 import com.sichao.userService.entity.vo.UpdateInfoVo;
 import com.sichao.userService.entity.vo.UpdatePasswordVo;
 import com.sichao.userService.entity.vo.UserInfoVo;
-import com.sichao.userService.service.IUserService;
+import com.sichao.userService.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,7 +31,7 @@ import java.util.HashMap;
 @Tag(name = "用户模块")//将该Controller类下的接口放入knife4j中，并命名为“用户模块”
 public class UserController {
     @Autowired
-    private IUserService userService;
+    private UserService userService;
     //注册
     @Operation(summary = "注册")//对该接口在knife4j中命名为“注册”
     @PostMapping("/register")
@@ -56,7 +56,7 @@ public class UserController {
     @Operation(summary = "根据token信息获取用户信息")
     @GetMapping("/getUserInfoByToken")
     public R getUserInfoByToken(HttpServletRequest request){
-        //threadLocal中无数据时说明未登录 TODO
+        //threadLocal中无数据时说明未登录
         HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
         if(map==null)return R.error().message("未登录");
         UserInfoVo userInfo=userService.getUserInfoByToken(Long.parseLong(map.get("userId")));

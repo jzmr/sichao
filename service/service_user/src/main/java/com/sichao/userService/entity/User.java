@@ -66,12 +66,12 @@ public class User implements Serializable {
     private LocalDate birthday;
 
     @Schema(description = "粉丝数")
-    @TableField("fans_count")
-    private Integer fansCount;
+    @TableField("follower_count")
+    private Integer followerCount;
 
     @Schema(description = "订阅数(0_65535)")
-    @TableField("subscription_count")
-    private Short subscriptionCount;
+    @TableField("following_count")
+    private Short followingCount;
 
     @Schema(description = "总博客数(0_65535)")
     @TableField("blog_count")

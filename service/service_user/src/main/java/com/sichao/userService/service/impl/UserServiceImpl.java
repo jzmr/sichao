@@ -1,6 +1,5 @@
 package com.sichao.userService.service.impl;
 
-import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.sichao.common.constant.Constant;
@@ -15,9 +14,8 @@ import com.sichao.userService.entity.vo.UpdateInfoVo;
 import com.sichao.userService.entity.vo.UpdatePasswordVo;
 import com.sichao.userService.entity.vo.UserInfoVo;
 import com.sichao.userService.mapper.UserMapper;
-import com.sichao.userService.service.IUserService;
+import com.sichao.userService.service.UserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -40,7 +38,7 @@ import java.util.regex.Pattern;
  * @since 2023-04-28
  */
 @Service
-public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;

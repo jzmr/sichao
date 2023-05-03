@@ -40,10 +40,10 @@ public class UserInfoVo {
     private LocalDate birthday;
 
     @Schema(description = "粉丝数")
-    private Integer fansCount;
+    private Integer followerCount;
 
     @Schema(description = "订阅数(0_65535)")
-    private Short subscriptionCount;
+    private Short followingCount;
 
     @Schema(description = "总博客数(0_65535)")
     private Short blogCount;

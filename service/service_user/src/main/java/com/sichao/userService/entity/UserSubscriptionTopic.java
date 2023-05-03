@@ -27,7 +27,7 @@ public class UserSubscriptionTopic implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "用户订阅话题关系id")
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     @Schema(description = "用户id")
@@ -44,7 +44,7 @@ public class UserSubscriptionTopic implements Serializable {
 
     @Schema(description = "是否逻辑删除：1（true）、0（false），默认为0")
     @TableField("is_deleted")
-    private Byte isDeleted;
+    private Boolean isDeleted;
 
     @Schema(description = "版本号（乐观锁操作要用到）")
     @TableField("version")

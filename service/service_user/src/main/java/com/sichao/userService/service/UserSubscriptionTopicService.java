@@ -11,6 +11,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @author jicong
  * @since 2023-04-28
  */
-public interface IUserSubscriptionTopicService extends IService<UserSubscriptionTopic> {
+public interface UserSubscriptionTopicService extends IService<UserSubscriptionTopic> {
 
 }

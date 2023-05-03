@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sichao.userService.entity.User;
 import com.sichao.userService.entity.vo.RegisterVo;
 import com.sichao.userService.mapper.UserMapper;
-import com.sichao.userService.service.IUserService;
+import com.sichao.userService.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 class ServiceUserApplicationTests {
 
     @Autowired
-    private IUserService userService;
+    private UserService userService;
     @Autowired
     private UserMapper userMapper;
 

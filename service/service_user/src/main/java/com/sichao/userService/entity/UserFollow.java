@@ -7,44 +7,45 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * <p>
- * 用户订阅用户关系表
+ * 用户关注用户关系id
  * </p>
  *
  * @author jicong
- * @since 2023-04-28
+ * @since 2023-05-03
  */
-@Getter
-@Setter
-@TableName("user_subscription_user")
-@Schema(name = "UserSubscriptionUser对象", description = "用户订阅用户关系表")
-public class UserSubscriptionUser implements Serializable {
+
+@Data//注在类上，提供类的get、set、equals、hashCode、canEqual、toString方法
+@AllArgsConstructor//注在类上，提供类的全参构造
+@NoArgsConstructor//注在类上，提供类的无参构造
+@TableName("user_follow")
+@Schema(name = "UserFollow对象", description = "用户关注用户关系表")
+public class UserFollow implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @Schema(description = "用户订阅用户关系id")
-    @TableId(value = "id", type = IdType.AUTO)
+    @Schema(description = "用户关注用户关系id")
+    @TableId(value = "id", type = IdType.ASSIGN_ID)//设置主键策略
     private Long id;
 
-    @Schema(description = "粉丝id，即发起订阅的用户id")
-    @TableField("fans_id")
-    private Long fansId;
+    @Schema(description = "粉丝id，即发起关注的用户id")
+    @TableField("follower_id")
+    private Long followerId;
 
-    @Schema(description = "订阅id，即被订阅的用户id")
-    @TableField("subscription_id")
-    private Long subscriptionId;
+    @Schema(description = "关注id，即被关注的用户id")
+    @TableField("following_id")
+    private Long followingId;
 
     @Schema(description = "状态，1表示已关注，0表示取消关注（使用status字段表示关注状态，避免频繁插入、删除数据）")
     @TableField("`status`")
-    private Byte status;
+    private Boolean status;
 
     @Schema(description = "是否逻辑删除：1（true）、0（false），默认为0")
     @TableField("is_deleted")
-    private Byte isDeleted;
+    private Boolean isDeleted;
 
     @Schema(description = "版本号（乐观锁操作要用到）")
     @TableField("version")

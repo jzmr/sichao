@@ -6,7 +6,6 @@ import com.sichao.userService.entity.vo.RegisterVo;
 import com.sichao.userService.entity.vo.UpdateInfoVo;
 import com.sichao.userService.entity.vo.UpdatePasswordVo;
 import com.sichao.userService.entity.vo.UserInfoVo;
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * <p>
@@ -17,7 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
  * @since 2023-04-28
  */
 
-public interface IUserService extends IService<User> {
+public interface UserService extends IService<User> {
     //注册
     void register(RegisterVo registerVo);
     //登录
