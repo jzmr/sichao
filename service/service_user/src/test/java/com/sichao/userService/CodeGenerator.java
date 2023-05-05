@@ -27,7 +27,8 @@ public class CodeGenerator{
         GlobalConfig globalConfig = new GlobalConfig.Builder()
                 .fileOverride()//覆盖已生成的文件，默认false
                 .disableOpenDir()//禁止加载完之后打开
-                .outputDir("F:\\project\\java_project\\sichao_parent\\service\\service_user\\src\\main\\java")//输出指定目录默认
+//                .outputDir("F:\\project\\java_project\\sichao_parent\\service\\service_user\\src\\main\\java")//输出指定目录默认
+                .outputDir("F:\\Java相关（桌面文件夹）\\临时文件夹\\代码生成")//输出指定目录默认
                 .author("jicong")//作者
                 //.enableKotlin()//是否开启kotlin模式 默认false
                 .enableSwagger()//开启swaggerm模式。默认false

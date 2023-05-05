@@ -34,8 +34,6 @@ public class TokenRefreshInterceptor implements HandlerInterceptor {
     // 用户数据，然后别的用户也刚好用到了这个tomcat中的线程a，就发生了歧义
     public static ThreadLocal<HashMap<String,String>> threadLocal = new ThreadLocal<>();
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
-    @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
     /**

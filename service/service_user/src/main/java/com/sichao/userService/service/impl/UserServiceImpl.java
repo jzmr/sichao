@@ -8,6 +8,7 @@ import com.sichao.common.entity.to.userInfoTo;
 import com.sichao.common.exceptionhandler.sichaoException;
 import com.sichao.common.utils.JwtUtils;
 import com.sichao.common.utils.MD5;
+import com.sichao.common.utils.RandomSxpire;
 import com.sichao.userService.entity.User;
 import com.sichao.userService.entity.vo.RegisterVo;
 import com.sichao.userService.entity.vo.UpdateInfoVo;
@@ -16,14 +17,18 @@ import com.sichao.userService.entity.vo.UserInfoVo;
 import com.sichao.userService.mapper.UserMapper;
 import com.sichao.userService.service.UserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,10 +45,15 @@ import java.util.regex.Pattern;
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
+    //保存在RedisTemplate与StringRedisTemplate之间的数据是隔离的
+    //在默认情况下Java 8不支持LocalDateTime，所以除非在另外配置的情况下，不然不要使用RedisTemplate
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private RedissonClient redissonClient;
+
 
     //注册
     @Transactional(rollbackFor = Exception.class)//把事务交给spring管理
@@ -189,12 +199,45 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     //根据用户id查看用户信息（密码除外）
+    //需要加缓存，因为如果是大V则会有非常多的人查看ta的主页
     @Override
     public UserInfoVo getUserInfoById(String id) {
-        User user = baseMapper.selectById(id);
-        UserInfoVo userInfo = new UserInfoVo();
-        BeanUtils.copyProperties(user, userInfo);
-        //查看是否关注该用户 TODO
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+        String userInfoKey = PrefixKeyConstant.USER_INFO_PREFIX + id;//用户信息key
+        String userInfoLockKey = PrefixKeyConstant.USER_INFO_LOCK_PREFIX + id;//用户信息锁key
+        String followerModifyKey = PrefixKeyConstant.USER_FOLLOWER_MODIFY_PREFIX + id;//用户粉丝变化数key
+        String followingModifyKey = PrefixKeyConstant.USER_FOLLOWING_MODIFY_PREFIX + id;//用户关注变化数key
+
+        UserInfoVo userInfo = JSON.parseObject(ops.get(userInfoKey), UserInfoVo.class);
+        if(userInfo == null){
+            RLock lock = redissonClient.getLock(userInfoLockKey);//锁key
+            lock.lock();//加锁，阻塞
+            try {
+                //双查机制，在锁内再查一遍缓存中是否有数据
+                userInfo = JSON.parseObject(ops.get(userInfoKey), UserInfoVo.class);
+                if(userInfo == null){
+                    //查询数据库
+                    User user = baseMapper.selectById(id);
+                    userInfo = new UserInfoVo();
+                    BeanUtils.copyProperties(user, userInfo);
+                    ops.set(userInfoKey,JSON.toJSONString(userInfo),
+                            Constant.ONE_HOURS_EXPIRE + RandomSxpire.getRandomSxpire(),
+                            TimeUnit.MILLISECONDS);//缓存到redis
+                }
+            }finally {
+                lock.unlock();//解锁
+            }
+        }
+        //查询用户关注数、粉丝数、博客数、获赞数 TODO
+        //保存在数据库中的关注数与粉丝数不是实时的数据，要加上redis中的变化数，之后会使用定时任务落盘数据到msyql并清除变化数缓存
+        String followerModifyCount = ops.get(followerModifyKey);
+        if(followerModifyCount != null){//加上粉丝变化数
+            userInfo.setFollowerCount(userInfo.getFollowerCount()+Integer.parseInt(followerModifyCount));
+        }
+        String followingModifyCount = ops.get(followingModifyKey);
+        if(followingModifyCount!=null){//加上关注变化数
+            userInfo.setFollowingCount((short) (userInfo.getFollowingCount()+Integer.parseInt(followingModifyCount)));
+        }
         return userInfo;
     }
 
@@ -210,8 +253,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         BeanUtils.copyProperties(updateInfoVo,user);//对象拷贝（源，目标）
         user.setId(userId);
         baseMapper.updateById(user);
-    }
 
+        //删除用户信息缓存
+        String userInfoKey = PrefixKeyConstant.USER_INFO_PREFIX + userId;//用户信息key
+        stringRedisTemplate.delete(userInfoKey);
+    }
 
 
     //校验传入参数什么合法：昵称，手机号，密码，验证码

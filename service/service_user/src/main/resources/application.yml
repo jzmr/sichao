@@ -30,11 +30,16 @@ spring:
     multipart: #设置上传文件的大小限制(注意：在2.0设置，springBoot默认是2MB，但是一点几 MB的时候也可能会报错)
       maxFileSize: 30MB
       maxRequestSize: 30MB
+  #返回json的全局时间格式,设置返回给前端页面的时间格式
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
 
-
+#mybatis-plus相关
 mybatis-plus:
   #Maven 多模块项目的扫描路径需以 classpath*: 开头 （即加载多个 jar 包下的 XML 文件）
-  mapper-locations: classpath:com/sichao/userService/mapper/xml/*.xml #配置mapper xml文件的路径
+#  mapper-locations: classpath:com/sichao/userService/mapper/xml/*.xml #配置mapper xml文件的路径
+  mapper-locations: classpath:com/sichao/*/mapper/xml/*.xml #配置mapper xml文件的路径(使用此配置‘*’就可以扫描到common模块下关于任务执行信息表的mapper)
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #mybatis日志
   global-config:
@@ -66,3 +71,23 @@ wx:
   #spring.servlet.multipart.maxFileSize=-1
   #
   #spring.servlet.multipart.maxRequestSize=-1
+
+#PageHelper分页插件相关配置
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+  support-methods-arguments: true
+  params: countSql
+
+#以下是openFeign相关
+#设置feign 客户端超时时间(OpenFeign 默认支持ribbon)(单位：毫秒)
+#ribbon:
+#  #指的是建立连接后从服务器读取到可用资源所用的时间
+#  ReadTimeout: 5000
+#  #指的是建立连接所用的时间，适用于网络状况正常的情况下,两端连接所用的时间
+#  ConnectTimeout: 5000
+
+#logging:
+#  level:
+#    # feign 日志以什么级别监控哪个接口
+#    com.atguigu.springcloud.service.PaymentFeignService: debug

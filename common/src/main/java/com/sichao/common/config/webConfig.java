@@ -16,7 +16,7 @@ public class webConfig implements WebMvcConfigurer {
     @Autowired
     private TokenRefreshInterceptor tokenRefreshInterceptor;
 
-    @Override
+    @Override//配置拦截器
     public void addInterceptors(InterceptorRegistry registry) {
         //所有方法都要被token续签拦截器拦截
         registry.addInterceptor(tokenRefreshInterceptor).addPathPatterns("/**");

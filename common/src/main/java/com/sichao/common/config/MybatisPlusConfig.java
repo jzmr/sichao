@@ -27,7 +27,8 @@ public class MybatisPlusConfig {
         interceptor.addInnerInterceptor(new BlockAttackInnerInterceptor());
         //新的分页插件,一缓和二缓遵循mybatis的规则,需要设置 MybatisConfiguration#useDeprecatedExecutor = false
         // 避免缓存出现问题(该属性会在旧插件移除后一同移除)
-        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));//指定是mysql数据库
+        //mybatis-plus的分页很插件基本不用，基本使用的pageHelper分页插件
+        //interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));//指定是mysql数据库
         return interceptor;
     }
 

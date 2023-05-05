@@ -5,11 +5,19 @@ import com.sichao.userService.entity.User;
 import com.sichao.userService.entity.vo.RegisterVo;
 import com.sichao.userService.mapper.UserMapper;
 import com.sichao.userService.service.UserService;
+import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
+import java.util.Collections;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -19,6 +27,10 @@ class ServiceUserApplicationTests {
     private UserService userService;
     @Autowired
     private UserMapper userMapper;
+    @Resource
+    private RedisTemplate<Object,Object> redisTemplate;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Test
     void contextLoads() {
@@ -86,6 +98,29 @@ class ServiceUserApplicationTests {
         User user = new User();
         user.setNickname("FULL");
         userService.saveOrUpdate(user, null);
+    }
+
+
+    @Test
+    public void savereids() {
+        User u=new User();
+        u.setId("1");
+        u.setNickname("kiki");
+        redisTemplate.opsForValue().set(u.getId(),u);
+        User result = (User) redisTemplate.opsForValue().get(u.getId());
+        System.out.println(result.toString());
+    }
+
+    @Test
+    public void lusTest(){//lua脚本测试
+        String script = """
+                local num= redis.call('GET',KEYS[1])
+                redis.call('DEL',KEYS[1])
+                return num
+                """;
+        String key="sichao:user:followerModify:1652319390978314242";
+        Long res = stringRedisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class), Arrays.asList(key));
+        System.out.println("================"+res);
     }
 
 

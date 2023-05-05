@@ -36,4 +36,5 @@ public class Constant {
     public static final long TOKEN_SECRET_KEY_DAY_PREFIX = 1000 * 60 * 60 * 24 * 15;//token秘钥前缀过期时间 TODO
 
 
+    public static final long ONE_HOURS_EXPIRE = 1000*60*60;//单位毫秒，1小时
 }
