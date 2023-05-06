@@ -2,7 +2,11 @@ package com.sichao.userService.mapper;
 
 import com.sichao.userService.entity.UserFollow;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.sichao.userService.entity.vo.FollowListVo;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * <p>
@@ -15,4 +19,8 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface UserFollowMapper extends BaseMapper<UserFollow> {
 
+    //查看用户关注列表
+    List<FollowListVo> getFollowingList(@Param("currentId") String currentId, @Param("id") String id);
+    //查看用户粉丝列表
+    List<FollowListVo> getFollowerList(String currentId, String id);
 }

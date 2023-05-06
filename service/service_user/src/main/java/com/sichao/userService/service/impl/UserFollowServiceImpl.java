@@ -1,11 +1,13 @@
 package com.sichao.userService.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.github.pagehelper.PageHelper;
 import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
 import com.sichao.common.exceptionhandler.sichaoException;
 import com.sichao.userService.entity.User;
 import com.sichao.userService.entity.UserFollow;
+import com.sichao.userService.entity.vo.FollowListVo;
 import com.sichao.userService.mapper.UserFollowMapper;
 import com.sichao.userService.service.UserFollowService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -15,6 +17,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 
 /**
@@ -112,6 +116,18 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
         UserFollow userFollow = baseMapper.selectOne(wrapper);
         if(userFollow == null)return false;
         return userFollow.getStatus();
+    }
+    //查看用户关注列表
+    @Override
+    public List<FollowListVo> getFollowingList(String currentId, String id) {
+        List<FollowListVo> list = baseMapper.getFollowingList(currentId,id);
+        return list;
+    }
+    //查看用户粉丝列表
+    @Override
+    public List<FollowListVo> getFollowerList(String currentId, String id) {
+        List<FollowListVo> list = baseMapper.getFollowerList(currentId,id);
+        return list;
     }
 
 }

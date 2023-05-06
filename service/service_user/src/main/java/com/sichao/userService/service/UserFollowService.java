@@ -2,6 +2,9 @@ package com.sichao.userService.service;
 
 import com.sichao.userService.entity.UserFollow;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.sichao.userService.entity.vo.FollowListVo;
+
+import java.util.List;
 
 /**
  * <p>
@@ -19,4 +22,8 @@ public interface UserFollowService extends IService<UserFollow> {
     boolean getFollowStatus(String userId, String id);
     //取关用户
     void unfollow(String userId, String followingId);
+    //查看用户关注列表
+    List<FollowListVo> getFollowingList(String currentId, String id);
+    //查看用户粉丝列表
+    List<FollowListVo> getFollowerList(String currentId, String id);
 }

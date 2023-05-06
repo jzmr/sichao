@@ -51,11 +51,16 @@
             <artifactId>mybatis-plus-boot-starter</artifactId>
             <scope>provided </scope>
         </dependency>
-        <!-- 分页插件pageHelper -->
+        <!-- 分页插件pageHelper,两个依赖都需要-->
+        <dependency>
+            <groupId>com.github.pagehelper</groupId>
+            <artifactId>pagehelper</artifactId>
+            <version>5.3.2</version>
+        </dependency>
         <dependency>
             <groupId>com.github.pagehelper</groupId>
             <artifactId>pagehelper-spring-boot-starter</artifactId>
-            <version>1.4.5</version>
+            <version>1.4.6</version>
         </dependency>
 
         <!--lombok用来简化实体类：需要安装lombok插件-->

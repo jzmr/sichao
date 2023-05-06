@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.lang.reflect.Array;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -121,6 +122,13 @@ class ServiceUserApplicationTests {
         String key="sichao:user:followerModify:1652319390978314242";
         Long res = stringRedisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class), Arrays.asList(key));
         System.out.println("================"+res);
+    }
+
+    @Test
+    public void dateTest(){
+        System.out.println(LocalDateTime.now());
+
+
     }
 
 
