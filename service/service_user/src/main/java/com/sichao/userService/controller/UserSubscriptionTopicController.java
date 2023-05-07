@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/userService/userSubscriptionTopic")
-@CrossOrigin//跨域解决方法
+//@CrossOrigin//跨域解决方法
 @Tag(name = "话题订阅模块")//将该Controller类下的接口放入knife4j中，并命名为“话题订阅模块”
 public class UserSubscriptionTopicController {
 

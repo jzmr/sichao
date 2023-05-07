@@ -31,7 +31,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/userService/userFollow")
-@CrossOrigin//跨域解决方法
+//@CrossOrigin//跨域解决方法
 @Tag(name = "用户关注模块")//将该Controller类下的接口放入knife4j中，并命名为“用户关注模块”
 public class UserFollowController {
     @Autowired

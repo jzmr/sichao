@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
  */
 @RestController
 @RequestMapping("/ossService/oss")
-@CrossOrigin//跨域解决方法
+//@CrossOrigin//跨域解决方法
 @Tag(name = "OSS对象存储模块")//将该Controller类下的接口放入knife4j中，并命名为“OSS对象存储模块”
 public class OssController {
     @Autowired

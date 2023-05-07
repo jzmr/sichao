@@ -5,7 +5,7 @@ spring:
     name: service-gateway #服务名
   cloud:
     nacos:
-      config:
+      discovery:
         server-addr: 127.0.0.1:8848 #配置nacos服务的ip：端口
     gateway:
       discovery:

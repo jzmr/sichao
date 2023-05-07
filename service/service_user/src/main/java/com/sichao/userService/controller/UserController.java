@@ -27,7 +27,7 @@ import java.util.HashMap;
  */
 @RestController
 @RequestMapping("/userService/user")
-@CrossOrigin//跨域解决方法
+//@CrossOrigin//跨域解决方法(gateway网关的跨域配置与这个注解不要一起使用，会有出错)
 @Tag(name = "用户模块")//将该Controller类下的接口放入knife4j中，并命名为“用户模块”
 public class UserController {
     @Autowired
@@ -106,7 +106,7 @@ public class UserController {
     @PostMapping("/updateAvatarUrl")
     public R updateAvatarUrl(String userId,String avatarUrl){
         userService.updateAvatarUrl(userId,avatarUrl);//修改头像url
-        return R.ok();
+        return R.ok().data("avatarUrl",avatarUrl);//返回地址做回显
     }
 
     //修改用户个人信息（头像、密码除外）
