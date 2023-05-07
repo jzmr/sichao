@@ -23,6 +23,6 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
     //修改数据时填充
     @Override
     public void updateFill(MetaObject metaObject) {
-        this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+        this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
     }
 }

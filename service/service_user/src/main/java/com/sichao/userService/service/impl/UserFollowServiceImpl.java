@@ -53,6 +53,7 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
         if(one!=null){//存在记录，修改状态
             if(!one.getStatus()){//未关注,则修改状态为已关注
                 one.setStatus(true);
+                one.setUpdateTime(null);//避免修改时间自动填充失效
                 isSuccess = baseMapper.updateById(one);//返回操作数据条目数：1
             }
         }else {//不存在记录，插入数据
@@ -90,6 +91,7 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
         if(one!=null){//存在记录，修改状态
             if(one.getStatus()){//已关注,则修改状态为已关注
                 one.setStatus(false);
+                one.setUpdateTime(null);//避免修改时间自动填充失效
                 isSuccess = baseMapper.updateById(one);//返回操作数据条目数：1
             }
         }

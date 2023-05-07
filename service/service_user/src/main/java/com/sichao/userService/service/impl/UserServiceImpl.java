@@ -240,6 +240,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         return userInfo;
     }
+    //修改头像url
+    @Override
+    public void updateAvatarUrl(String userId, String avatarUrl) {
+        User user = new User();
+        user.setId(userId);
+        user.setAvatarUrl(avatarUrl);
+        baseMapper.updateById(user);
+        stringRedisTemplate.delete(PrefixKeyConstant.USER_INFO_PREFIX + userId);//删除用户信息缓存
+    }
 
     //修改用户个人信息（头像、密码除外）
     @Override

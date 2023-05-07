@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sichao.userService.mapper.UserFollowMapper">
-    <!--查看用户关注列表-->
+    <!--倒序查询某有用户的关注列表，并查询当前用户是否关注这些被查询出来的用户-->
     <select id="getFollowingList" resultType="com.sichao.userService.entity.vo.FollowListVo">
         SELECT id,nickname,gender,avatar_url,sign,
-               (SELECT count(1)FROM user_follow
-                WHERE follower_id = #{currentId} AND following_id = u.id AND status=1) currentIdIsFollow
+               (SELECT count(1) FROM user_follow WHERE follower_id = #{currentId} AND following_id = u.id AND status=1) currentIdIsFollow
         FROM `user` u
-        WHERE id IN (SELECT following_id FROM `user_follow` WHERE follower_id = #{id}  AND status=1)
+        RIGHT JOIN (SELECT following_id,update_time FROM `user_follow` WHERE follower_id = #{id} AND status=1) t
+        ON u.id = t.following_id
+        ORDER BY t.update_time DESC
     </select>
-    <!--查看用户粉丝列表-->
+    <!--倒序查询某有用户的粉丝列表，并查询当前用户是否关注这些被查询出来的用户-->
     <select id="getFollowerList" resultType="com.sichao.userService.entity.vo.FollowListVo">
         SELECT id,nickname,gender,avatar_url,sign,
-               (SELECT count(1) FROM user_follow
-                WHERE follower_id = #{currentId} AND following_id=u.id and status=1) currentIdIsFollow
+               (SELECT count(1) FROM user_follow WHERE follower_id = #{currentId} AND following_id=u.id AND status=1) currentIdIsFollow
         FROM `user` u
-        WHERE id IN (SELECT follower_id FROM `user_follow` WHERE following_id = #{id} and status=1)
+        RIGHT JOIN (SELECT follower_id,update_time FROM `user_follow` WHERE following_id = #{id} AND status=1) t
+        ON u.id=t.follower_id
+        ORDER BY t.update_time DESC
     </select>
 </mapper>

@@ -31,6 +31,8 @@ public interface UserService extends IService<User> {
     void updatePassword(String token,String userId, UpdatePasswordVo updatePasswordVo);
     //根据用户id查看用户信息（密码除外）
     UserInfoVo getUserInfoById(String id);
+    //修改头像url
+    void updateAvatarUrl(String userId, String avatarUrl);
     //修改用户个人信息（头像、密码除外）
     void updateInfo(String userId, UpdateInfoVo updateInfoVo);
 }

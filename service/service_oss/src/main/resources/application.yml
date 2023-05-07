@@ -1,14 +1,14 @@
 server:
-  port: 8000 #服务端口
+  port: 9000 #服务端口
 spring:
   application:
-    name: service-user #配置服务名
+    name: service-oss #配置服务名
   cloud:
     nacos:
       discovery:  #用于服务注册中心
         server-addr: 127.0.0.1:8848 #配置nacos地址
-#      config: #用于配置中心
-#        server-addr: 127.0.0.1:8848 #配置nacos地址
+  #      config: #用于配置中心
+  #        server-addr: 127.0.0.1:8848 #配置nacos地址
   datasource: #配置mysql数据源
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/sichao_blog?serverTimezone=GMT%2B8
@@ -38,7 +38,7 @@ spring:
 #mybatis-plus相关
 mybatis-plus:
   #Maven 多模块项目的扫描路径需以 classpath*: 开头 （即加载多个 jar 包下的 XML 文件）
-#  mapper-locations: classpath:com/sichao/userService/mapper/xml/*.xml #配置mapper xml文件的路径
+  #  mapper-locations: classpath:com/sichao/userService/mapper/xml/*.xml #配置mapper xml文件的路径
   mapper-locations: classpath:com/sichao/*/mapper/xml/*.xml #配置mapper xml文件的路径(使用此配置‘*’就可以扫描到common模块下关于任务执行信息表的mapper)
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #mybatis日志
@@ -85,3 +85,12 @@ pagehelper:
 #  level:
 #    # feign 日志以什么级别监控哪个接口
 #    com.atguigu.springcloud.service.PaymentFeignService: debug
+
+#与阿里云Oss对象存储服务相关
+aliyun:
+  oss:
+    file:
+      endpoint: oss-cn-guangzhou.aliyuncs.com #Oss服务器节点，地址不同
+      keyid: LTAI5tL4rgDXDzTMNmqGupwk #阿里的RAM访问控制的AccessKeyId
+      keysecret: IwZjDffhUpLY4ttMzcSD71Ob9Q1biJ #阿里的RAM访问控制的AccessKeySecret
+      buckername: sichao-blog #ducker名（bucket可以在控制台创建，也可以使用java代码创建）

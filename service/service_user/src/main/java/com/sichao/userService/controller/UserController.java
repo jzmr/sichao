@@ -100,7 +100,14 @@ public class UserController {
         return R.ok().data("userInfo",userInfo);
     }
 
-    //修改头像 TODO
+    //修改头像url,用来被OSS模块远程调用，其传过来一个图片上传返回的地址，这个方法将该地址持久化到用户表中
+    //远程调用时，请求中是不用有token的，不能在这里通过threadLocal线程变量去拿当前用户id
+    @Operation(summary = "修改头像Url")
+    @PostMapping("/updateAvatarUrl")
+    public R updateAvatarUrl(String userId,String avatarUrl){
+        userService.updateAvatarUrl(userId,avatarUrl);//修改头像url
+        return R.ok();
+    }
 
     //修改用户个人信息（头像、密码除外）
     @Operation(summary = "修改用户个人信息（头像、密码除外）")
@@ -112,4 +119,6 @@ public class UserController {
         userService.updateInfo(map.get("userId"),updateInfoVo);//修改信息
         return getUserInfoById(map.get("userId"));//查询修改后的信息并返回
     }
+
+
 }

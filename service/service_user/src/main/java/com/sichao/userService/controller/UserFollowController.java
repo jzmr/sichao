@@ -69,7 +69,7 @@ public class UserFollowController {
         return R.ok().data("isFollow",isFollow);
     }
 
-    // 分页查看用户关注列表
+    // 分页查看用户关注列表，倒序
     @Operation(summary = "查看用户关注列表")
     @GetMapping("/getFollowingList/{id}/{page}/{limit}")//传入要查看关注列表的用户id，页码，每页条目数
     public R getFollowingList(@PathVariable("id") String id,@PathVariable("page") int page,@PathVariable("limit") int limit){
@@ -97,7 +97,7 @@ public class UserFollowController {
 //        System.out.println(pageInfo.getNextPage());//下一页页码
         return R.ok().data("followingList",followingList).data("pageInfo",pageInfo);
     }
-    // 分页查看用户粉丝列表
+    // 分页查看用户粉丝列表，倒序
     @Operation(summary = "查看用户粉丝列表")
     @GetMapping("/getFollowerList/{id}/{page}/{limit}")//传入要查看粉丝列表的用户id，页码，每页条目数
     public R getFollowerList(@PathVariable("id") String id,@PathVariable("page") int page,@PathVariable("limit") int limit){

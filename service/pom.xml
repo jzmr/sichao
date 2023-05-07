@@ -44,18 +44,31 @@
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.cloud</groupId>
+                    <artifactId>spring-cloud-starter-netflix-ribbon</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!--配置中心-->
 <!--        <dependency>-->
 <!--            <groupId>com.alibaba.cloud</groupId>-->
 <!--            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>-->
 <!--        </dependency>-->
-
         <!--服务调用-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
+        <!--负载均衡：SpringCloud Feign在Hoxton.M2 RELEASED版本之后不再使用Ribbon而是使用spring-cloud-loadbalancer-->
+        <!--所以要在nacos的依赖中排除ribbon，在这里引入loadbalancer-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+
+
         <!--springboot web-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
