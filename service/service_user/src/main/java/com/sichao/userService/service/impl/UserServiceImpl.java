@@ -241,6 +241,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return userInfo;
     }
     //修改头像url
+    @Transactional
     @Override
     public void updateAvatarUrl(String userId, String avatarUrl) {
         User user = new User();
@@ -251,6 +252,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     //修改用户个人信息（头像、密码除外）
+    @Transactional
     @Override
     public void updateInfo(String userId, UpdateInfoVo updateInfoVo) {
         //创建模版对象(这里的正则表达式不需要带斜杠“/”)

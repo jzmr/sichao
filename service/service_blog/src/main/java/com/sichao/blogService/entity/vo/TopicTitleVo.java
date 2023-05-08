@@ -19,7 +19,7 @@ public class TopicTitleVo {
     @Schema(description = "话题id")
     private String id;
 
-    @Schema(description = "话题名称")
+    @Schema(description = "话题名称(最多25字)")
     private String topicTitle;
 
 }

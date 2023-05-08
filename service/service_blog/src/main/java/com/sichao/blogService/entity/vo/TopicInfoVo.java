@@ -3,15 +3,16 @@ package com.sichao.blogService.entity.vo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-
 /**
- * @Description: 发布话题VO，用于与发布话题
+ * @Description: 话题信息VO
  * @author: sjc
- * @createTime: 2023年05月08日 13:23
+ * @createTime: 2023年05月08日 22:16
  */
 @Data
-@Schema(name = "发布话题VO", description = "发布话题VO")
-public class PublishTopicVo {
+@Schema(name = "话题信息VO", description = "话题信息VO")
+public class TopicInfoVo {
+    @Schema(description = "话题id")
+    private String id;
 
     @Schema(description = "话题名称(最多25字)")
     private String topicTitle;
@@ -24,5 +25,5 @@ public class PublishTopicVo {
 
     @Schema(description = "话题创建者ID")
     private String creatorId;
-}
 
+}

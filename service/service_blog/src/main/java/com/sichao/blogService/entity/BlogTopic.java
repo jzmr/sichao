@@ -28,7 +28,7 @@ public class BlogTopic implements Serializable {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private String id;
 
-    @Schema(description = "话题名称")
+    @Schema(description = "话题名称(最多25字)")
     @TableField("topic_title")
     private String topicTitle;
 

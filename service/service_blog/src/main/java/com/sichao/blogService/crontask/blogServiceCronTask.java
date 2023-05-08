@@ -34,7 +34,7 @@ import java.util.Set;
 @Component//交给spring管理
 //@EnableScheduling//开启定时任务（已在Scheduled配置文件配置了开启定时任务与异步任务）
 public class blogServiceCronTask {
-    public static final int hotTopicSize=50; //热搜榜长度
+    public static final int hotTopicSize=100; //热搜榜长度，前50个话题是要展示的，后50个话题备用
 
     @Autowired
     private BlogTopicService blogTopicService;
@@ -69,6 +69,7 @@ public class blogServiceCronTask {
                 // 业务代码
                 //获得最近三天以来新建的话题
                 QueryWrapper<BlogTopic> wrapper = new QueryWrapper<>();
+                wrapper.eq("status",1);//话题可用
                 wrapper.ge("create_time", LocalDateTime.now().minusDays(3));
                 List<BlogTopic> list = blogTopicService.list(wrapper);
                 //准备redis与key
@@ -81,9 +82,9 @@ public class blogServiceCronTask {
                 //计算热度公式：热度 = 总讨论数 / (当前时间 - 创建时间 + 2) ^ 1.5  （时间衰减方法）
                 for (BlogTopic topic : list) {
                     try {
-                        //int i=10/0;
-                        //总讨论数
+                        //总讨论数 TODO 要加上缓存中的讨论数修改数
                         int totalDiscussion = topic.getTotalDiscussion();
+
                         //相差小时数=当前时间 - 创建时间
                         LocalDateTime createTime = topic.getCreateTime();
                         LocalDateTime dateTimeNow=LocalDateTime.now();
@@ -109,7 +110,7 @@ public class blogServiceCronTask {
                     }
                 }
 
-                //长度超过50时，删除排名50之后的话题
+                //长度超过hotTopicSize时，删除排名hotTopicSize之后的话题
                 //保存在redis中的zSet类型中的数据，默认是升序，查询时在命令的Z后面添加REV可降序查询
                 Long size = zSet.size(hotTopicKey);
                 if(size!=null && size>hotTopicSize){
@@ -134,4 +135,6 @@ public class blogServiceCronTask {
             // 未获得锁，忽略
         }
     }
+
+    //话题总讨论数自增数定时任务落盘 TODO
 }
