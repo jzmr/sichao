@@ -2,7 +2,7 @@ package com.sichao.blogService.service.impl;
 
 import com.sichao.blogService.entity.BlogComment;
 import com.sichao.blogService.mapper.BlogCommentMapper;
-import com.sichao.blogService.service.IBlogCommentService;
+import com.sichao.blogService.service.BlogCommentService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +15,6 @@ import org.springframework.stereotype.Service;
  * @since 2023-04-29
  */
 @Service
-public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogComment> implements IBlogCommentService {
+public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogComment> implements BlogCommentService {
 
 }

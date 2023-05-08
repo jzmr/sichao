@@ -11,6 +11,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @author jicong
  * @since 2023-04-29
  */
-public interface IReportInfoService extends IService<ReportInfo> {
+public interface ReportInfoService extends IService<ReportInfo> {
 
 }

@@ -7,8 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * <p>
@@ -18,8 +17,9 @@ import lombok.Setter;
  * @author jicong
  * @since 2023-04-29
  */
-@Getter
-@Setter
+@Data//注在类上，提供类的get、set、equals、hashCode、canEqual、toString方法
+@AllArgsConstructor//注在类上，提供类的全参构造
+@NoArgsConstructor//注在类上，提供类的无参构造
 @TableName("blog")
 @Schema(name = "Blog对象", description = "博客表")
 public class Blog implements Serializable {

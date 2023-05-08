@@ -2,7 +2,7 @@ package com.sichao.blogService.service.impl;
 
 import com.sichao.blogService.entity.ReportInfo;
 import com.sichao.blogService.mapper.ReportInfoMapper;
-import com.sichao.blogService.service.IReportInfoService;
+import com.sichao.blogService.service.ReportInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +15,6 @@ import org.springframework.stereotype.Service;
  * @since 2023-04-29
  */
 @Service
-public class ReportInfoServiceImpl extends ServiceImpl<ReportInfoMapper, ReportInfo> implements IReportInfoService {
+public class ReportInfoServiceImpl extends ServiceImpl<ReportInfoMapper, ReportInfo> implements ReportInfoService {
 
 }

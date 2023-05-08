@@ -48,7 +48,7 @@ public class userServiceCronTask {
 //    @Scheduled(cron = "1 * * * * ?")//每分钟的第一秒
     public void followerAndFollowingModifyToDisk() throws InterruptedException {
         log.info("followerAndFollowingModifyToDisk定时任务开始");
-        String cronTaskLock = PrefixKeyConstant.CRON_TASK_LOCK_PREFIX + "followerAndFollowingModifyToDisk";//定时任务锁
+        String cronTaskLock = PrefixKeyConstant.USER_CRON_TASK_LOCK_PREFIX + "followerAndFollowingModifyToDisk";//定时任务锁
         String userInfoPrefix = PrefixKeyConstant.USER_INFO_PREFIX;// 用户信息key前缀
         String followerModifyPrefix = PrefixKeyConstant.USER_FOLLOWER_MODIFY_PREFIX;//用户粉丝变化数key前缀
         String followingModifyPrefix = PrefixKeyConstant.USER_FOLLOWING_MODIFY_PREFIX;//用户关注变化数key前缀
@@ -89,7 +89,8 @@ public class userServiceCronTask {
                             stringRedisTemplate.delete(userInfoPrefix+userId);
                         }catch (Exception e) {
                             taskInfo.setExceptionInfo("处理用户\""+key.substring(key.lastIndexOf(':') + 1)+"\"粉丝变化数时出现异常");
-                            throw new sichaoException(Constant.FAILURE_CODE,"处理用户\""+key.substring(key.lastIndexOf(':') + 1)+"\"粉丝变化数时出现异常");
+                            throw new sichaoException(Constant.FAILURE_CODE,
+                                    "处理用户\""+key.substring(key.lastIndexOf(':') + 1)+"\"粉丝变化数时出现异常");
                         }
 
                     }
@@ -116,7 +117,8 @@ public class userServiceCronTask {
                             stringRedisTemplate.delete(userInfoPrefix + userId);
                         }catch (Exception e) {
                             taskInfo.setExceptionInfo("处理用户\""+key.substring(key.lastIndexOf(':') + 1)+"\"关注变化数时出现异常");
-                            throw new sichaoException(Constant.FAILURE_CODE,"处理用户\""+key.substring(key.lastIndexOf(':') + 1)+"\"关注变化数时出现异常");
+                            throw new sichaoException(Constant.FAILURE_CODE,
+                                    "处理用户\""+key.substring(key.lastIndexOf(':') + 1)+"\"关注变化数时出现异常");
                         }
                     }
                 }

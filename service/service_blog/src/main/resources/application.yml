@@ -1,8 +1,8 @@
 server:
-  port: 9000 #服务端口
+  port: 10000 #服务端口
 spring:
   application:
-    name: service-oss #配置服务名
+    name: service-blog #配置服务名
   cloud:
     nacos:
       discovery:  #用于服务注册中心
@@ -48,6 +48,7 @@ mybatis-plus:
       logic-delete-value: 1 # 逻辑已删除值(默认为 1)
       logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
 
+
   #比如在2.0设置，springBoot默认是2MB，但是一点几 MB的时候也可能会报错
   #设置上传文件的大小限制，
   #spring.servlet.multipart.maxFileSize=30MB
@@ -77,12 +78,3 @@ pagehelper:
 #  level:
 #    # feign 日志以什么级别监控哪个接口
 #    com.atguigu.springcloud.service.PaymentFeignService: debug
-
-#与阿里云Oss对象存储服务相关
-aliyun:
-  oss:
-    file:
-      endpoint: oss-cn-guangzhou.aliyuncs.com #Oss服务器节点，地址不同
-      keyid: LTAI5tL4rgDXDzTMNmqGupwk #阿里的RAM访问控制的AccessKeyId
-      keysecret: IwZjDffhUpLY4ttMzcSD71Ob9Q1biJ #阿里的RAM访问控制的AccessKeySecret
-      buckername: sichao-blog #ducker名（bucket可以在控制台创建，也可以使用java代码创建）

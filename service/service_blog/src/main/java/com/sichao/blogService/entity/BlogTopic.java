@@ -1,14 +1,11 @@
 package com.sichao.blogService.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * <p>
@@ -18,8 +15,9 @@ import lombok.Setter;
  * @author jicong
  * @since 2023-04-29
  */
-@Getter
-@Setter
+@Data//注在类上，提供类的get、set、equals、hashCode、canEqual、toString方法
+@AllArgsConstructor//注在类上，提供类的全参构造
+@NoArgsConstructor//注在类上，提供类的无参构造
 @TableName("blog_topic")
 @Schema(name = "BlogTopic对象", description = "话题表")
 public class BlogTopic implements Serializable {
@@ -46,10 +44,6 @@ public class BlogTopic implements Serializable {
     @TableField("creator_id")
     private String creatorId;
 
-    @Schema(description = "话题热度")
-    @TableField("topic_hot")
-    private Integer topicHot;
-
     @Schema(description = "总讨论数，包括该话题下相关的博客数、评论数和转发数总和")
     @TableField("total_discussion")
     private Integer totalDiscussion;
@@ -67,18 +61,20 @@ public class BlogTopic implements Serializable {
     private Byte status;
 
     @Schema(description = "是否逻辑删除：1（true）、0（false），默认为0")
+    @TableLogic//指定对应字段做逻辑删除操作
     @TableField("is_deleted")
-    private Byte isDeleted;
+    private boolean isDeleted;
 
     @Schema(description = "版本号（乐观锁操作要用到）")
+    @Version//指定对应字段做乐观锁操作
     @TableField("version")
     private Integer version;
 
     @Schema(description = "创建时间")
-    @TableField("create_time")
+    @TableField(value = "create_time",fill = FieldFill.INSERT)//插入数据时执行填充
     private LocalDateTime createTime;
 
     @Schema(description = "修改时间")
-    @TableField("update_time")
+    @TableField(value = "update_time",fill = FieldFill.INSERT_UPDATE)//插入或修改数据时执行填充
     private LocalDateTime updateTime;
 }

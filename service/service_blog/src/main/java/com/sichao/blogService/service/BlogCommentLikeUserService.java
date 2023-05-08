@@ -11,6 +11,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @author jicong
  * @since 2023-04-29
  */
-public interface IBlogCommentLikeUserService extends IService<BlogCommentLikeUser> {
+public interface BlogCommentLikeUserService extends IService<BlogCommentLikeUser> {
 
 }

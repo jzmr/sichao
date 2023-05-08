@@ -76,7 +76,7 @@ public class CodeGenerator{
 
 //                <------service层------------>
                 .serviceBuilder()
-                .formatServiceFileName("I%sService")//同理Controller拼接文件名字
+                .formatServiceFileName("%sService")//同理Controller拼接文件名字
 
 //                <-----mapper层控制-------->
                 .mapperBuilder()

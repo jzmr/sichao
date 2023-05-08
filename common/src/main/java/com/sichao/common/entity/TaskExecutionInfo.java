@@ -47,7 +47,9 @@ public class TaskExecutionInfo implements Serializable {
     @TableField("end_time")
     private LocalDateTime endTime;
 
-    @Schema(description = "记录异常信息，当任务无法完成时，记录无法完成任务的原因，或在处理多个数据时记录时哪个数据到的异常导致无法完成任务")
+    @Schema(description = "记录异常信息：\n" +
+            "1、当任务无法完成时，记录无法完成任务的原因，\n" +
+            "2、处理多个数据时记录出现异常的数据id")
     @TableField("exception_info")
     private String exceptionInfo;
 
