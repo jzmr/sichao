@@ -46,8 +46,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         String content = publishBlogVo.getContent();//获取博客内容
         if(!StringUtils.hasText(content))
             throw new sichaoException(Constant.FAILURE_CODE,"博客内容不能为空");
-        List<String> topicList=new ArrayList<>();//用来保存话题title的集合
-        List<String> userList=new ArrayList<>();//用来保存用户昵称的集合
+        List<String> topicList=new ArrayList<>();//用来保存话题id的集合
+        List<String> userList=new ArrayList<>();//用来保存用户id的集合
         StringBuffer strb=new StringBuffer();//用来拼接博客内容
         int idx = 0;
 
@@ -64,7 +64,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         while (matchr_user.find()){//为true说明匹配，为false说明不匹配
             String origion_str_user = matchr_user.group();//获取匹配到的字符串
             String userStr = origion_str_user.substring(1, origion_str_user.length()).trim();//裁剪
-            userList.add(userStr);
 
             //TODO 这里的循环查库优化？
             R r = (R) userClient.getUserIdByNickname(userStr);//远程调用查询用户id
@@ -74,6 +73,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             //matchr.start()：获得被匹配到的子串在原串的起始位置
             strb.append(content.substring(idx, matchr_user.start()));
             if(userId!=null){
+                userList.add(userId);//添加用户id到集合
                 strb.append(Constant.BLOG_AT_USER_HYPERLINK_PREFIX)
                         .append(userId)
                         .append(Constant.BLOG_AT_USER_HYPERLINK_INFIX);
@@ -101,7 +101,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         while (matchr_topic.find()){//为true说明匹配，为false说明不匹配。
             String origion_str_topic = matchr_topic.group();//获取匹配到的字符串
             String topicStr = origion_str_topic.substring(2, origion_str_topic.length()-2).trim();//裁剪
-            topicList.add(topicStr);
 
             //TODO 这里的循环查库优化？抽取变量？
             QueryWrapper<BlogTopic> wrapperTopic = new QueryWrapper<>();
@@ -112,6 +111,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             //matchr.start()：获得被匹配到的子串在原串的起始位置
             strb.append(content.substring(idx, matchr_topic.start()));
             if(blogTopic!=null){
+                topicList.add(blogTopic.getId());//添加话题id到集合
                 strb.append(Constant.BLOG_AT_TOPIC_HYPERLINK_PREFIX)
                         .append(blogTopic.getId())
                         .append(Constant.BLOG_AT_TOPIC_HYPERLINK_INFIX);
