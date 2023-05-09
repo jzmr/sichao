@@ -37,4 +37,17 @@ public class Constant {
 
 
     public static final long ONE_HOURS_EXPIRE = 1000*60*60;//单位毫秒，1小时
+
+    //@用户 超链接拼接常量
+    //<a href="/user/1231243512351431234" style="color:orange;">@aaa</a>
+    public static final String BLOG_AT_USER_HYPERLINK_PREFIX = "<a href=\"/user/";//+用户id（@用户超链接前缀）
+    public static final String BLOG_AT_USER_HYPERLINK_INFIX = "\" style=\"color:orange;\">";//+@用户名（@用户超链接中缀）
+    public static final String BLOG_AT_USER_HYPERLINK_SUFFIX = "</a>";//（@用户超链接后缀）
+
+
+    //#话题# 超链接拼接常量/blog/topic
+    //<a href="/blog/topic/1231243512351431234" style="color:blue;">#bbb#</a>
+    public static final String BLOG_AT_TOPIC_HYPERLINK_PREFIX = "<a href=\"/blog/topic/";//+话题id    （#话题#超链接前缀）
+    public static final String BLOG_AT_TOPIC_HYPERLINK_INFIX = "\" style=\"color:blue;\">";//+#话题title# （#话题#超链接中缀）
+    public static final String BLOG_AT_TOPIC_HYPERLINK_SUFFIX = "</a>";//（#话题#超链接后缀）
 }

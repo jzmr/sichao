@@ -120,5 +120,13 @@ public class UserController {
         return getUserInfoById(map.get("userId"));//查询修改后的信息并返回
     }
 
+    //根据昵称（用户名）查询用户id(用于远程调用)
+    @Operation(summary = "根据昵称（用户名）查询用户id")
+    @GetMapping("/getUserIdByNickname")
+    public R getUserIdByNickname(String nickname){
+        String userId = userService.getUserIdByNickname(nickname);
+        return R.ok().data("userId",userId);
+    }
+
 
 }

@@ -256,9 +256,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public void updateInfo(String userId, UpdateInfoVo updateInfoVo) {
         //创建模版对象(这里的正则表达式不需要带斜杠“/”)
-        Pattern p = Pattern.compile("^.{2,8}$");//校验昵称/^.{2,8}$/
+        Pattern p = Pattern.compile("^(?!\\s)[\\S]{2,8}(?<!\\s)$");//校验昵称/^(?!\s)[\S]{2,8}(?<!\s)$/
         Matcher m = p.matcher(updateInfoVo.getNickname());//进行匹配，//m.find()为true什么匹配，为false说明不匹配
-        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "昵称格式不正确，昵称最少2位、最多8位");
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "昵称格式不正确，昵称最少2位、最多8位，且前后不能为空格");
+
+        //判断昵称是否重复（开发环境下注释掉）TODO
+//        QueryWrapper<User> wrapper=new QueryWrapper();
+//        wrapper.eq("nickname", updateInfoVo.getNickname());
+//        User userOne = baseMapper.selectOne(wrapper);
+//        if(userOne!=null){//说明昵称重复
+//            throw new sichaoException(Constant.FAILURE_CODE,"昵称重复,注册失败");
+//        }
+
         //修改信息
         User user = new User();
         BeanUtils.copyProperties(updateInfoVo,user);//对象拷贝（源，目标）
@@ -268,6 +277,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         //删除用户信息缓存
         String userInfoKey = PrefixKeyConstant.USER_INFO_PREFIX + userId;//用户信息key
         stringRedisTemplate.delete(userInfoKey);
+    }
+
+    //根据昵称（用户名）查询用户id
+    @Override
+    public String getUserIdByNickname(String nickname) {
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.eq("nickname",nickname);
+        wrapper.select("id");
+        User one = baseMapper.selectOne(wrapper);
+        return one.getId();
     }
 
 
@@ -284,17 +303,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Matcher m = p.matcher(phone);//进行匹配，//m.find()为true什么匹配，为false说明不匹配
         if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "手机号码格式不正确");
 
-        p = Pattern.compile("^.{2,8}$");//校验昵称/^.{2,8}$/
+        //匹配一个字符串最少2个字符，多8个字符，第一个字符与最后一个字符不能必须是空格
+        p = Pattern.compile("^(?!\\s)[\\S]{2,8}(?<!\\s)$");//校验昵称/^(?!\s)[\S]{2,8}(?<!\s)$/
         m = p.matcher(nickname);
-        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "昵称格式不正确，昵称最少2位、最多8位");
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "昵称格式不正确，昵称最少2位、最多8位，且前后不能为空格");
 
         p = Pattern.compile("^[0-9]{6}$");//校验验证码/^[0-9]{6}$/
         m = p.matcher(code);
         if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "验证码格式不正确，验证码为6位数字");
 
-        p = Pattern.compile("^.{8,20}$");//校验密码/^.{8,20}$/
+        //匹配一个字符串最少2个字符，多8个字符，第一个字符与最后一个字符不能必须是空格,其余的字符只能是数字、小写字母与大写字母
+        p = Pattern.compile("^(?!\\s)[a-zA-Z0-9]{2,10}(?<!\\s)$");//校验密码/^(?!\s)[a-zA-Z0-9]{2,10}(?<!\s)$/
         m = p.matcher(password);
-        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位");
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位的数字或字母");
     }
 
     //校验传入参数什么合法：手机号，密码
@@ -308,9 +329,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Matcher m = p.matcher(phone);//进行匹配，//m.find()为true什么匹配，为false说明不匹配
         if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "手机号码格式不正确");
 
-        p = Pattern.compile("^.{8,20}$");//校验密码/^.{8,20}$/
+        //匹配一个字符串最少2个字符，多8个字符，第一个字符与最后一个字符不能必须是空格,其余的字符只能是数字、小写字母与大写字母
+        p = Pattern.compile("^(?!\\s)[a-zA-Z0-9]{2,10}(?<!\\s)$");//校验密码/^(?!\s)[a-zA-Z0-9]{2,10}(?<!\s)$/
         m = p.matcher(password);
-        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位");
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位的数字或字母");
     }
 
     //校验传入参数什么合法：手机号，原密码，新密码，验证码
@@ -330,13 +352,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         m = p.matcher(code);
         if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "验证码格式不正确，验证码为6位数字");
 
-        p = Pattern.compile("^.{8,20}$");//校验密码/^.{8,20}$/
+        //匹配一个字符串最少2个字符，多8个字符，第一个字符与最后一个字符不能必须是空格,其余的字符只能是数字、小写字母与大写字母
+        p = Pattern.compile("^(?!\\s)[a-zA-Z0-9]{2,10}(?<!\\s)$");//校验密码/^(?!\s)[a-zA-Z0-9]{2,10}(?<!\s)$/
         m = p.matcher(oldPassword);
-        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位");
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位的数字或字母");
 
-        p = Pattern.compile("^.{8,20}$");//校验密码/^.{8,20}$/
+        //匹配一个字符串最少2个字符，多8个字符，第一个字符与最后一个字符不能必须是空格,其余的字符只能是数字、小写字母与大写字母
+        p = Pattern.compile("^(?!\\s)[a-zA-Z0-9]{2,10}(?<!\\s)$");//校验密码/^(?!\s)[a-zA-Z0-9]{2,10}(?<!\s)$/
         m = p.matcher(newPassword);
-        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位");
+        if (!m.find()) throw new sichaoException(Constant.FAILURE_CODE, "密码格式不正确，密码至少为8位、最多20位的数字或字母");
     }
 
 

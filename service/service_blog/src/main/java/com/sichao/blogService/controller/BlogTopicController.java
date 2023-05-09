@@ -24,8 +24,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/blogService/blogTopic")
-//@CrossOrigin//跨域解决方法(gateway网关的跨域配置与这个注解不要一起使用，会有出错)
-@Tag(name = "话题模块")//将该Controller类下的接口放入knife4j中，并命名为“话题模块”
+@Tag(name = "话题模块")
 public class BlogTopicController {
     @Autowired
     private BlogTopicService blogTopicService;

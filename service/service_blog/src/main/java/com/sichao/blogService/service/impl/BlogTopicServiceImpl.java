@@ -1,6 +1,7 @@
 package com.sichao.blogService.service.impl;
 
 import com.alibaba.fastjson2.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.sichao.blogService.entity.BlogTopic;
 import com.sichao.blogService.entity.vo.PublishTopicVo;
 import com.sichao.blogService.entity.vo.TopicInfoVo;
@@ -17,6 +18,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -42,6 +44,18 @@ public class BlogTopicServiceImpl extends ServiceImpl<BlogTopicMapper, BlogTopic
     @Transactional
     @Override
     public void publishTopic(PublishTopicVo publishTopicVo) {
+        //校验话题title是否合法
+        if(!StringUtils.hasText(publishTopicVo.getTopicTitle())){
+            throw new sichaoException(Constant.FAILURE_CODE,"话题标题不能为空");
+        }
+        //清除话题title的前导后导空格
+        publishTopicVo.setTopicTitle(publishTopicVo.getTopicTitle().trim());
+        QueryWrapper<BlogTopic> wrapper = new QueryWrapper<>();
+        wrapper.eq("topic_title",publishTopicVo.getTopicTitle());
+        BlogTopic one = baseMapper.selectOne(wrapper);
+        if(one!=null)throw new sichaoException(Constant.FAILURE_CODE,"该话题已存在");
+
+        //保存话题
         BlogTopic blogTopic = new BlogTopic();
         BeanUtils.copyProperties(publishTopicVo, blogTopic);
         //设置默认话题图标

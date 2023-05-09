@@ -131,22 +131,4 @@ class ServiceUserApplicationTests {
         System.out.println(LocalDateTime.now());
     }
 
-    public static void main(String[] args) {
-        Pattern referer_pattern = Pattern.compile("@([^@^\\s^:]{1,})([\\s\\:\\,\\;]{0,1})");//@.+?[\\s:]
-
-        String msg = "qweqweqweqw@admin 奥德赛 @ijasdi @jsidj @@11111 加急";
-        String usname = "";
-        int lastIdx = 0;
-        Matcher matchr = referer_pattern.matcher(msg);
-        while (matchr.find()){//为true说明匹配，为false说明不匹配
-            String origion_str = matchr.group();
-            System.out.println("origion_str："+origion_str);
-            String str = origion_str.substring(1, origion_str.length()).trim();
-            System.out.println("str:"+str);
-            System.out.println(msg.substring(lastIdx, matchr.start()));
-
-        }
-    }
-
-
 }
