@@ -1,5 +1,6 @@
 package com.sichao.blogService.service.impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.sichao.blogService.client.UserClient;
 import com.sichao.blogService.entity.Blog;
@@ -11,7 +12,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sichao.blogService.service.BlogTopicService;
 import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.RabbitMQConstant;
+import com.sichao.common.entity.MqMessage;
 import com.sichao.common.exceptionhandler.sichaoException;
+import com.sichao.common.mapper.MqMessageMapper;
 import com.sichao.common.utils.R;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -40,6 +43,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
     private UserClient userClient;
     @Autowired
     private RabbitTemplate rabbitTemplate;
+    @Autowired
+    private MqMessageMapper mqMessageMapper;
 
 
     //发布博客
@@ -142,17 +147,29 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         Map<String,Object> topicMap = new HashMap<>();
         topicMap.put("blogId",blogId);
         topicMap.put("topicIdList",topicIdList);
+        //发送消息前先记录数据
+        String topicMapJson = JSON.toJSONString(topicMap);
+        MqMessage topicMqMessage = new MqMessage(topicMapJson,RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_BINDING_TOPIC_ROUTINGKEY,
+                "Map<String,Object>",(byte)0);
+        mqMessageMapper.insert(topicMqMessage);
+
         //指定路由，给交换机发送数据，并且携带数据标识
         rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_BINDING_TOPIC_ROUTINGKEY,
-                topicMap,new CorrelationData(UUID.randomUUID().toString()));
+                topicMap,new CorrelationData(topicMqMessage.getId()));//以mq消息表id作为数据标识
 
 
         Map<String,Object> userMap=new HashMap<>();
         userMap.put("blogId",blogId);
         userMap.put("userIdList",userIdList);
+        //发送消息前先记录数据
+        String userMapJson = JSON.toJSONString(userMap);
+        MqMessage UserMqMessage = new MqMessage(userMapJson,RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_AT_USER_ROUTINGKEY,
+                "Map<String,Object>",(byte)0);
+        mqMessageMapper.insert(UserMqMessage);
+
         //指定路由，给交换机发送数据，并且携带数据标识
         rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_AT_USER_ROUTINGKEY,
-                userMap,new CorrelationData(UUID.randomUUID().toString()));
+                userMap,new CorrelationData(UserMqMessage.getId()));//以mq消息表id作为数据标识
 
     }
 }

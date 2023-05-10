@@ -48,7 +48,7 @@ public class blogServiceCronTask {
 
     //每隔1个小时，动态计算三日内创建的话题热度
     @Async
-    @Scheduled(cron = "* 0 * * * ?")//每小时第0分
+    @Scheduled(cron = "0 0 * * * ?")//每小时第0分0秒时启动，前面的0不写会导致，0分的每一秒都会执行定时任务
 //    @Scheduled(cron = "1 * * * * ?")//每分钟的第一秒
     public void refreshHotTopic() {
         log.info("refreshHotTopic定时任务开始");
