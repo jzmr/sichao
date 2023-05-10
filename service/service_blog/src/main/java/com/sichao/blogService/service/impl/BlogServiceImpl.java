@@ -78,11 +78,11 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
                         .append(userId)
                         .append(Constant.BLOG_AT_USER_HYPERLINK_INFIX);
             }
-            strb.append(origion_str_user);
+            strb.append('@'+userStr);
             if(userId!=null){
                 strb.append(Constant.BLOG_AT_USER_HYPERLINK_SUFFIX);
             }
-            idx=matchr_user.start()+origion_str_user.length();
+            idx=matchr_user.start()+userStr.length()+1;
         }
         strb.append(content.substring(idx));
 
