@@ -10,16 +10,17 @@ import com.sichao.blogService.service.BlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sichao.blogService.service.BlogTopicService;
 import com.sichao.common.constant.Constant;
+import com.sichao.common.constant.RabbitMQConstant;
 import com.sichao.common.exceptionhandler.sichaoException;
 import com.sichao.common.utils.R;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +38,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
     private BlogTopicService blogTopicService;
     @Autowired
     private UserClient userClient;
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
 
     //发布博客
@@ -46,9 +49,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         String content = publishBlogVo.getContent();//获取博客内容
         if(!StringUtils.hasText(content))
             throw new sichaoException(Constant.FAILURE_CODE,"博客内容不能为空");
-        List<String> topicList=new ArrayList<>();//用来保存话题id的集合
-        List<String> userList=new ArrayList<>();//用来保存用户id的集合
-        StringBuffer strb=new StringBuffer();//用来拼接博客内容
+        List<String> topicIdList=new ArrayList<>();//用来保存话题id的集合
+        List<String> userIdList=new ArrayList<>();//用来保存用户id的集合
+        StringBuilder strb=new StringBuilder();//用来拼接博客内容
         int idx = 0;
 
         /**
@@ -73,7 +76,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             //matchr.start()：获得被匹配到的子串在原串的起始位置
             strb.append(content.substring(idx, matchr_user.start()));
             if(userId!=null){
-                userList.add(userId);//添加用户id到集合
+                userIdList.add(userId);//添加用户id到集合
                 strb.append(Constant.BLOG_AT_USER_HYPERLINK_PREFIX)
                         .append(userId)
                         .append(Constant.BLOG_AT_USER_HYPERLINK_INFIX);
@@ -111,7 +114,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             //matchr.start()：获得被匹配到的子串在原串的起始位置
             strb.append(content.substring(idx, matchr_topic.start()));
             if(blogTopic!=null){
-                topicList.add(blogTopic.getId());//添加话题id到集合
+                topicIdList.add(blogTopic.getId());//添加话题id到集合
                 strb.append(Constant.BLOG_AT_TOPIC_HYPERLINK_PREFIX)
                         .append(blogTopic.getId())
                         .append(Constant.BLOG_AT_TOPIC_HYPERLINK_INFIX);
@@ -126,14 +129,30 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         strb.append(content.substring(idx));
 
 
-        // TODO RabbitMQ发送消息，异步实现对@用户与#话题#的处理
-
-
         //保存博客
         Blog blog = new Blog();
         blog.setContent(strb.toString());
         blog.setCreatorId(publishBlogVo.getCreatorId());
         blog.setImageUrl(publishBlogVo.getImageUrl());
         baseMapper.insert(blog);
+
+
+        //RabbitMQ发送消息，异步实现对@用户与#话题#的处理
+        String blogId = blog.getId();//获取自动生成的id
+        Map<String,Object> topicMap = new HashMap<>();
+        topicMap.put("blogId",blogId);
+        topicMap.put("topicIdList",topicIdList);
+        //指定路由，给交换机发送数据，并且携带数据标识
+        rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_BINDING_TOPIC_ROUTINGKEY,
+                topicMap,new CorrelationData(UUID.randomUUID().toString()));
+
+
+        Map<String,Object> userMap=new HashMap<>();
+        userMap.put("blogId",blogId);
+        userMap.put("userIdList",userIdList);
+        //指定路由，给交换机发送数据，并且携带数据标识
+        rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_AT_USER_ROUTINGKEY,
+                userMap,new CorrelationData(UUID.randomUUID().toString()));
+
     }
 }

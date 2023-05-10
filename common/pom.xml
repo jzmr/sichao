@@ -88,6 +88,11 @@
             <artifactId>redisson</artifactId>
             <version>3.16.8</version>
         </dependency>
+        <!--rabbitMQ-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
 
         <!-- JWT-->
         <dependency>

@@ -35,7 +35,7 @@ public class BlogController {
     //发布博客
     @PostMapping("/saveBlog")
     public R saveBlog(@RequestBody PublishBlogVo publishBlogVo){
-        //threadLocal中无数据时说明未登录
+        //threadLocal中无数据时说明未登录 TODO
 //        HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
 //        if(map==null)return R.error().message("未登录");
 
