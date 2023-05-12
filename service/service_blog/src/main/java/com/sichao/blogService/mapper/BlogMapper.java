@@ -2,7 +2,10 @@ package com.sichao.blogService.mapper;
 
 import com.sichao.blogService.entity.Blog;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.sichao.blogService.entity.vo.BlogVo;
 import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
 
 /**
  * <p>
@@ -14,5 +17,6 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface BlogMapper extends BaseMapper<Blog> {
-
+    //查询指定话题id下的博客
+    List<BlogVo> getBlogByTopicId(String userId, String topicId);
 }

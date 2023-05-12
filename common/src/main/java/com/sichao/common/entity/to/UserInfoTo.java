@@ -14,7 +14,13 @@ import lombok.NoArgsConstructor;
 @Data   //提供类的get、set、equals、hashCode、canEqual、toString方法
 @NoArgsConstructor // 无参构造器
 @AllArgsConstructor //有参构造器
-public class userInfoTo {
+public class UserInfoTo {
     private String userId;//用户id
     private String nickname;//用户昵称
+    private String avatarUrl;//用户头像
+
+    public UserInfoTo(String userId, String nickname) {
+        this.userId = userId;
+        this.nickname = nickname;
+    }
 }

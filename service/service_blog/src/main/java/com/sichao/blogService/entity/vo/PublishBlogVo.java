@@ -14,14 +14,21 @@ import lombok.Data;
 public class PublishBlogVo {
 
     @Schema(description = "博客内容")
-    @TableField("content")
     private String content;
 
     @Schema(description = "创建博客用户id")
-    @TableField("creator_id")
     private String creatorId;
 
-    @Schema(description = "多个图片地址链接成一个字符串，使用逗号分隔")
-    @TableField("image_url")
-    private String imageUrl;
+    @Schema(description = "图片地址1")
+    private String imgOne;
+
+    @Schema(description = "图片地址2")
+    private String imgTwo;
+
+    @Schema(description = "图片地址3")
+    private String imgThree;
+
+    @Schema(description = "图片地址4")
+    private String imgFour;
+
 }

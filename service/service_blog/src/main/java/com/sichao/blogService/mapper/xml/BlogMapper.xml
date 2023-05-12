@@ -2,4 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sichao.blogService.mapper.BlogMapper">
 
+    <select id="getBlogByTopicId" resultType="com.sichao.blogService.entity.vo.BlogVo">
+        SELECT b.id,b.content,b.creator_id,b.comment_count,b.like_count,b.img_one,b.img_Two,b.img_Three,img_Four,
+               (SELECT COUNT(1) FROM blog_like_user WHERE blog_id=b.id and user_id=#{userId}) isPraiseByCurrentUser
+        FROM blog_topic_relation t
+                 LEFT JOIN blog b ON t.blog_id = b.id
+        WHERE t.topic_id = #{topicId}
+        ORDER BY (b.comment_count+b.like_count) DESC
+    </select>
 </mapper>

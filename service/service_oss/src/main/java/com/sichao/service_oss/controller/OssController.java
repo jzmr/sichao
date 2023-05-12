@@ -28,16 +28,16 @@ public class OssController {
     @Autowired
     private UserClient userClient;
 
-    //上传文件的方法(☆)
-    @PostMapping(value = "/uploadFile/{userId}/{imgNo}")//MultipartFile这个类型的参数可以获得前端上传的文件
-    public R uploadFile(@PathVariable("userId") String userId, @PathVariable("imgNo") String imgNo, MultipartFile file){
-        System.out.println(file.getOriginalFilename());
+    //上传文件的方法(☆),会自动将图片爆出你地址返回给前端
+    @PostMapping(value = "/uploadFile")//MultipartFile这个类型的参数可以获得前端上传的文件
+    public R uploadFile(MultipartFile file){
+//        System.out.println(file.getOriginalFilename());
         //上传文件并返回文件在oss中的url地址
         String url=ossService.uploadFile(file);
 
         //将url保存到redis中,设置有效时长
 //        redisTemplate.opsForValue().set(userId+"_"+imgNo,url,5, TimeUnit.MINUTES);//设置5分钟的有效时间
-        return R.ok();
+        return R.ok().data("url",url);
     }
 
     //上传头像图片文件的方法(☆)（细化方法）

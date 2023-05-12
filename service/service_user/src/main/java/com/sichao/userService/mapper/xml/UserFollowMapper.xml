@@ -19,4 +19,10 @@
         ON u.id=t.follower_id
         ORDER BY t.update_time DESC
     </select>
+    <select id="getFollowingNicknameList" resultType="java.lang.String">
+        SELECT u.nickname FROM user_follow f
+        LEFT JOIN `user` u on f.following_id = u.id
+        WHERE f.follower_id = #{userId} AND f.`status`=1
+        ORDER BY f.update_time DESC
+    </select>
 </mapper>

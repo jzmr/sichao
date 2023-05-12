@@ -1,5 +1,6 @@
 package com.sichao.userService.service;
 
+import com.sichao.common.entity.to.UserInfoTo;
 import com.sichao.userService.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.sichao.userService.entity.vo.RegisterVo;
@@ -38,4 +39,6 @@ public interface UserService extends IService<User> {
 
     //根据昵称（用户名）查询用户id
     String getUserIdByNickname(String nickname);
+    //根据用户id查询用户信息
+    UserInfoTo getUserById(String id);
 }

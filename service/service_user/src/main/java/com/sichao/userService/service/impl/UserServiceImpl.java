@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
-import com.sichao.common.entity.to.userInfoTo;
+import com.sichao.common.entity.to.UserInfoTo;
 import com.sichao.common.exceptionhandler.sichaoException;
 import com.sichao.common.utils.JwtUtils;
 import com.sichao.common.utils.MD5;
@@ -28,7 +28,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -123,7 +122,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         //以前缀+token为key，将用户信息（id+nickname）放入redis中，过期时间为5天
         stringRedisTemplate.opsForValue().set(
                 PrefixKeyConstant.USER_TOKEN_PREFIX+jwtToken,
-                JSON.toJSONString(new userInfoTo(userOne.getId(), userOne.getNickname())),
+                JSON.toJSONString(new UserInfoTo(userOne.getId(), userOne.getNickname())),
                 Constant.REFRESH_TOKEN_EXPIRE,
                 TimeUnit.MILLISECONDS);
 
@@ -287,6 +286,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         wrapper.select("id");
         User one = baseMapper.selectOne(wrapper);
         return one.getId();
+    }
+
+    //根据用户id查询用户信息
+    @Override
+    public UserInfoTo getUserById(String id) {
+        User user = baseMapper.selectById(id);
+        UserInfoTo userInfoTo = new UserInfoTo(user.getId(),user.getNickname(),user.getAvatarUrl());
+        return userInfoTo;
     }
 
 

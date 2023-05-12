@@ -70,7 +70,8 @@ public class blogServiceCronTask {
                 //获得最近三天以来新建的话题
                 QueryWrapper<BlogTopic> wrapper = new QueryWrapper<>();
                 wrapper.eq("status",1);//话题可用
-                wrapper.ge("create_time", LocalDateTime.now().minusDays(3));
+                //TODO 开发阶段就不设置3天的限制了
+//                wrapper.ge("create_time", LocalDateTime.now().minusDays(3));
                 List<BlogTopic> list = blogTopicService.list(wrapper);
                 //准备redis与key
                 String hotTopicKey = PrefixKeyConstant.BLOG_HOT_TOPIC_KEY;//热搜榜key

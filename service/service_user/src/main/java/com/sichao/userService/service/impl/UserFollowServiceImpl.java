@@ -132,4 +132,11 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
         return list;
     }
 
+    //查询当前用户关注的用户的昵称
+    @Override
+    public List<String> getFollowingNicknameList(String userId) {
+        List<String> nicknameList = baseMapper.getFollowingNicknameList(userId);
+        return nicknameList;
+    }
+
 }

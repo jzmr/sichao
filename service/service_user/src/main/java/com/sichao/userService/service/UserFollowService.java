@@ -26,4 +26,6 @@ public interface UserFollowService extends IService<UserFollow> {
     List<FollowListVo> getFollowingList(String currentId, String id);
     //查看用户粉丝列表
     List<FollowListVo> getFollowerList(String currentId, String id);
+    //查询当前用户关注的用户的昵称
+    List<String> getFollowingNicknameList(String userId);
 }

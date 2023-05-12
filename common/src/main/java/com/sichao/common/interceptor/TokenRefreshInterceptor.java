@@ -3,14 +3,12 @@ package com.sichao.common.interceptor;
 import com.alibaba.fastjson2.JSON;
 import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
-import com.sichao.common.entity.to.userInfoTo;
+import com.sichao.common.entity.to.UserInfoTo;
 import com.sichao.common.utils.JwtUtils;
-import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
@@ -64,7 +62,7 @@ public class TokenRefreshInterceptor implements HandlerInterceptor {
             String userInfoStr = stringRedisTemplate.opsForValue().get(PrefixKeyConstant.USER_TOKEN_PREFIX + jwtToken);
             if (userInfoStr != null) {//续签时间不过期
                 //获取当前用户信息
-                userInfoTo userInfoTo = JSON.parseObject(userInfoStr, userInfoTo.class);
+                UserInfoTo userInfoTo = JSON.parseObject(userInfoStr, UserInfoTo.class);
                 String userId = userInfoTo.getUserId();
                 String nickname = userInfoTo.getNickname();
                 //根据续签token获取信息用来构建新token,1天

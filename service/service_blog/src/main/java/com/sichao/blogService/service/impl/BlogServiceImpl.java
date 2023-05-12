@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.sichao.blogService.client.UserClient;
 import com.sichao.blogService.entity.Blog;
 import com.sichao.blogService.entity.BlogTopic;
+import com.sichao.blogService.entity.vo.BlogVo;
 import com.sichao.blogService.entity.vo.PublishBlogVo;
 import com.sichao.blogService.mapper.BlogMapper;
 import com.sichao.blogService.service.BlogService;
@@ -13,11 +14,13 @@ import com.sichao.blogService.service.BlogTopicService;
 import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.RabbitMQConstant;
 import com.sichao.common.entity.MqMessage;
+import com.sichao.common.entity.to.UserInfoTo;
 import com.sichao.common.exceptionhandler.sichaoException;
 import com.sichao.common.mapper.MqMessageMapper;
 import com.sichao.common.utils.R;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -136,40 +139,74 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
 
         //保存博客
         Blog blog = new Blog();
-        blog.setContent(strb.toString());
-        blog.setCreatorId(publishBlogVo.getCreatorId());
-        blog.setImageUrl(publishBlogVo.getImageUrl());
+        BeanUtils.copyProperties(publishBlogVo,blog);
+        blog.setContent(strb.toString());//拼接了超链接的博客内容
         baseMapper.insert(blog);
 
-
         //RabbitMQ发送消息，异步实现对@用户与#话题#的处理
-        String blogId = blog.getId();//获取自动生成的id
-        Map<String,Object> topicMap = new HashMap<>();
-        topicMap.put("blogId",blogId);
-        topicMap.put("topicIdList",topicIdList);
-        //发送消息前先记录数据
-        String topicMapJson = JSON.toJSONString(topicMap);
-        MqMessage topicMqMessage = new MqMessage(topicMapJson,RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_BINDING_TOPIC_ROUTINGKEY,
-                "Map<String,Object>",(byte)0);
-        mqMessageMapper.insert(topicMqMessage);
+        //博客中有#话题#时
+        if(!topicIdList.isEmpty()){
+            String blogId = blog.getId();//获取自动生成的id
+            Map<String,Object> topicMap = new HashMap<>();
+            topicMap.put("blogId",blogId);
+            topicMap.put("topicIdList",topicIdList);
+            //发送消息前先记录数据
+            String topicMapJson = JSON.toJSONString(topicMap);
+            MqMessage topicMqMessage = new MqMessage(topicMapJson,RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_BINDING_TOPIC_ROUTINGKEY,
+                    "Map<String,Object>",(byte)0);
+            mqMessageMapper.insert(topicMqMessage);
 
-        //指定路由，给交换机发送数据，并且携带数据标识
-        rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_BINDING_TOPIC_ROUTINGKEY,
-                topicMap,new CorrelationData(topicMqMessage.getId()));//以mq消息表id作为数据标识
+            //指定路由，给交换机发送数据，并且携带数据标识
+            rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_BINDING_TOPIC_ROUTINGKEY,
+                    topicMap,new CorrelationData(topicMqMessage.getId()));//以mq消息表id作为数据标识
+        }
+        //博客中@用户时
+        if(!userIdList.isEmpty()){
+            String blogId = blog.getId();//获取自动生成的id
+            Map<String,Object> userMap=new HashMap<>();
+            userMap.put("blogId",blogId);
+            userMap.put("userIdList",userIdList);
+            //发送消息前先记录数据
+            String userMapJson = JSON.toJSONString(userMap);
+            MqMessage UserMqMessage = new MqMessage(userMapJson,RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_AT_USER_ROUTINGKEY,
+                    "Map<String,Object>",(byte)0);
+            mqMessageMapper.insert(UserMqMessage);
+
+            //指定路由，给交换机发送数据，并且携带数据标识
+            rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_AT_USER_ROUTINGKEY,
+                    userMap,new CorrelationData(UserMqMessage.getId()));//以mq消息表id作为数据标识
+
+        }
+
+    }
+
+    //查询指定话题id下的博客
+    @Override
+    public List<BlogVo> getBlogByTopicId(String userId, String topicId) {
+        //查询博客
+        List<BlogVo> blogVoList = baseMapper.getBlogByTopicId(userId,topicId);
+        blogListHandle(blogVoList);
+        return blogVoList;
+    }
 
 
-        Map<String,Object> userMap=new HashMap<>();
-        userMap.put("blogId",blogId);
-        userMap.put("userIdList",userIdList);
-        //发送消息前先记录数据
-        String userMapJson = JSON.toJSONString(userMap);
-        MqMessage UserMqMessage = new MqMessage(userMapJson,RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_AT_USER_ROUTINGKEY,
-                "Map<String,Object>",(byte)0);
-        mqMessageMapper.insert(UserMqMessage);
+    //博客Vo列表处理
+    public void blogListHandle(List<BlogVo> blogVoList){
+        for (BlogVo blogVo : blogVoList) {
+            List<String> imgList = new ArrayList<>();
+            if(blogVo.getImgOne()!=null) imgList.add(blogVo.getImgOne());
+            if(blogVo.getImgTwo()!=null) imgList.add(blogVo.getImgTwo());
+            if(blogVo.getImgThree()!=null) imgList.add(blogVo.getImgThree());
+            if(blogVo.getImgFour()!=null) imgList.add(blogVo.getImgFour());
+            blogVo.setImgList(imgList);
 
-        //指定路由，给交换机发送数据，并且携带数据标识
-        rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_AT_USER_ROUTINGKEY,
-                userMap,new CorrelationData(UserMqMessage.getId()));//以mq消息表id作为数据标识
-
+            //微服务feign调用后，使用JSON将R转化成指定对象
+            R r = userClient.getUserById(blogVo.getCreatorId());
+            Object o = r.getData().get("userInfoTo");
+            String toJSONString = JSON.toJSONString(o);
+            UserInfoTo userInfoTo = JSON.parseObject(toJSONString, UserInfoTo.class);
+            blogVo.setNickname(userInfoTo.getNickname());
+            blogVo.setAvatarUrl(userInfoTo.getAvatarUrl());
+        }
     }
 }

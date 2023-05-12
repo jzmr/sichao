@@ -44,9 +44,22 @@ public class Blog implements Serializable {
     @TableField("like_count")
     private Integer likeCount;
 
-    @Schema(description = "多个图片地址链接成一个字符串，使用逗号分隔")
-    @TableField("image_url")
-    private String imageUrl;
+    @Schema(description = "图片地址1")
+    @TableField("img_one")
+    private String imgOne;
+
+    @Schema(description = "图片地址2")
+    @TableField("img_Two")
+    private String imgTwo;
+
+    @Schema(description = "图片地址3")
+    @TableField("img_Three")
+    private String imgThree;
+
+    @Schema(description = "图片地址4")
+    @TableField("img_Four")
+    private String imgFour;
+
 
     @Schema(description = "状态，1表示可用，0表示禁用")
     @TableField("`status`")

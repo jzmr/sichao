@@ -1,6 +1,7 @@
 package com.sichao.userService.controller;
 
 import com.sichao.common.constant.Constant;
+import com.sichao.common.entity.to.UserInfoTo;
 import com.sichao.common.interceptor.TokenRefreshInterceptor;
 import com.sichao.common.utils.R;
 import com.sichao.userService.entity.User;
@@ -121,11 +122,18 @@ public class UserController {
     }
 
     //根据昵称（用户名）查询用户id(用于远程调用)
-    @Operation(summary = "根据昵称（用户名）查询用户id")
+    @Operation(summary = "根据昵称（用户名）查询用户id(用于远程调用)")
     @GetMapping("/getUserIdByNickname")
     public R getUserIdByNickname(String nickname){
         String userId = userService.getUserIdByNickname(nickname);
         return R.ok().data("userId",userId);
+    }
+    //根据用户id查询用户信息(用于远程调用)
+    @Operation(summary = "根据用户id查询用户信息(用于远程调用)")
+    @GetMapping("/getUserById")
+    public R getUserById(String id){
+        UserInfoTo userInfoTo = userService.getUserById(id);
+        return R.ok().data("userInfoTo",userInfoTo);
     }
 
 
