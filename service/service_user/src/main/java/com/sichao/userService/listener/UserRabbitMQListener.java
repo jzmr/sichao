@@ -19,7 +19,7 @@ import java.util.Map;
  * @createTime: 2023年05月10日 16:29
  */
 @Component
-public class userRabbitMQListener {
+public class UserRabbitMQListener {
     @Autowired
     private MqMessageMapper mqMessageMapper;
 

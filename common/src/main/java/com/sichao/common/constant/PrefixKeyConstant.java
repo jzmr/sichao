@@ -22,6 +22,8 @@ public class PrefixKeyConstant {//项目名:业务名:类型:id
 
     //博客模块
     public static final String BLOG_HOT_TOPIC_KEY = "sichao:blog:hotTopic";//     （热搜话题榜）
+    public static final String BLOG_HOT_TOPIC_TEMP_KEY = "sichao:blog:hotTopicTemp";//     （临时热搜话题榜，用来缓存实时热度计算，全部计算完后合并到热搜榜中，避免因为热搜排行更新期间用户无法查询热搜）
+    public static final String BLOG_TOPIC_DISCUSSION_MODIFY_PREFIX = "sichao:blog:topicDiscussionModify:";//+话题id  （话题讨论数变化）
 
     public static final String BLOG_CRON_TASK_LOCK_PREFIX = "sichao:blog:cronTaskLcok:";//+具体定时任务名  （博客模块定时任务锁）
 

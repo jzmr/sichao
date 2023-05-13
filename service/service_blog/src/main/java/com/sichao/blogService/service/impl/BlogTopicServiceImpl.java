@@ -2,6 +2,7 @@ package com.sichao.blogService.service.impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.sichao.blogService.crontask.BlogServiceCronTask;
 import com.sichao.blogService.entity.BlogTopic;
 import com.sichao.blogService.entity.vo.PublishTopicVo;
 import com.sichao.blogService.entity.vo.TopicInfoVo;
@@ -38,6 +39,8 @@ import java.util.Set;
 public class BlogTopicServiceImpl extends ServiceImpl<BlogTopicMapper, BlogTopic> implements BlogTopicService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private BlogServiceCronTask blogServiceCronTask;
 
 
     //发布话题
@@ -68,11 +71,25 @@ public class BlogTopicServiceImpl extends ServiceImpl<BlogTopicMapper, BlogTopic
     @Override
     public List<TopicTitleVo> getHotTopicList() {
         //热搜榜key
-        String hotTopicKey = PrefixKeyConstant.BLOG_HOT_TOPIC_KEY;
+        String hotTopicKey = PrefixKeyConstant.BLOG_HOT_TOPIC_KEY;//热搜榜key
+        String hotTopicTempKey = PrefixKeyConstant.BLOG_HOT_TOPIC_TEMP_KEY;//临时热搜榜key
         //根据话题热度倒序（从大到小）获取50条话题
         //保存在redis中的zSet类型中的数据，默认是升序，查询时在命令的Z后面添加REV可降序查询
-        Set<String> set = stringRedisTemplate.opsForZSet().reverseRange(hotTopicKey, 0, 49);
-        if(set==null)return null;
+        Set<String> set=null;
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();
+
+        //避免因为热搜排行更新期间用户无法查询热搜
+        if(stringRedisTemplate.keys(hotTopicKey)!=null && !stringRedisTemplate.keys(hotTopicKey).isEmpty()){
+            set = zSet.reverseRange(hotTopicKey, 0, 49);
+        }else if(stringRedisTemplate.keys(hotTopicTempKey)!=null  && !stringRedisTemplate.keys(hotTopicTempKey).isEmpty()){
+            //去临时热搜榜查，因为可能是在更新热搜榜之前删除热搜榜的key导致无法获取，而此时临时热搜榜是有数据的，所以可以在这里查
+            set=zSet.reverseRange(hotTopicTempKey, 0, 49);
+        }else{
+            blogServiceCronTask.refreshHotTopic();//查询不到时，调用定时任务类的方法，查询热搜榜的带redis中
+            set=zSet.reverseRange(hotTopicKey, 0, 49);
+        }
+        if(set==null) return null;
+
         List<TopicTitleVo> list = new ArrayList<>();
         for (String str : set) {
             TopicTitleVo topicTitleVo = JSON.parseObject(str, TopicTitleVo.class);

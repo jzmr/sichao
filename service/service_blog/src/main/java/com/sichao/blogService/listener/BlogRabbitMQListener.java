@@ -20,7 +20,7 @@ import java.util.Map;
  * @createTime: 2023年05月10日 15:44
  */
 @Component
-public class blogRabbitMQListener {
+public class BlogRabbitMQListener {
     @Autowired
     private BlogTopicRelationService blogTopicRelationService;
     @Autowired

@@ -5,6 +5,10 @@ import com.sichao.blogService.entity.BlogTopicRelation;
 import com.sichao.blogService.mapper.BlogTopicRelationMapper;
 import com.sichao.blogService.service.BlogTopicRelationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.sichao.common.constant.PrefixKeyConstant;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +24,10 @@ import java.util.List;
  */
 @Service
 public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationMapper, BlogTopicRelation> implements BlogTopicRelationService {
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+
     //要保证消费代码的幂等性，避免重复消费
     //批量绑定某个博客与多个话题之间的关系（此方法用来被rabbitMQ的消费者调用）
     @Transactional
@@ -28,6 +36,8 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
         //数据的正确性在发送消息之前就已经验证过了，所以这里不用验证数据是否正确
         QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
         BlogTopicRelation blogTopicRelation=null;
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+        //TODO 循环查库了
         for (String topicId : topicIdList) {
             wrapper.eq("topic_id",topicId);
             wrapper.eq("blog_id",blogId);
@@ -38,6 +48,12 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
             blogTopicRelation.setBlogId(blogId);
             blogTopicRelation.setTopicId(topicId);
             baseMapper.insert(blogTopicRelation);
+
+            //给话题在redis中增加讨论数
+            String topicDiscussionModifyKey = PrefixKeyConstant.BLOG_TOPIC_DISCUSSION_MODIFY_PREFIX + topicId;//话题讨论数变化key
+            //话题总讨论数+1
+            ops.increment(topicDiscussionModifyKey);//自增，如果key不存在，则先创建整个key且值为0，而后再自增
+
         }
     }
 }

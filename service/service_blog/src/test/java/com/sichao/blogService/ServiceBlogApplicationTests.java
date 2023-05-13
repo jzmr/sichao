@@ -87,33 +87,33 @@ class ServiceBlogApplicationTests {
 //    }
 
     //@测试
-    public static void main(String[] args) {
-        StringBuffer strb=new StringBuffer();//用来拼接博客内容
-        //下面的代码不能有^与$,加了会对整个字符串进行匹配，如果字符串不是以@号开头则不匹配
-        //不加则可以用来对字符串中每个子串都进行匹配判断
-        Pattern referer_pattern = Pattern.compile("@([^@^\\s]{1,})([\\s]{0,1})");//@.+?[\\s:]
-        String msg = "qweqweqweqw@admin :奥德赛 @ijasdi:@jsidj @@1231 @加急 123";
-        String usname = "";
-        int idx = 0;
-        Matcher matchr = referer_pattern.matcher(msg);
-        //之前字符串中匹配到的位置不会在被匹配到，会往后开始匹配，配合while循环做到匹配整个字符串中所有符合正则表达式的子串
-        while (matchr.find()){//为true说明匹配，为false说明不匹配
-            String origion_str = matchr.group();//获取匹配到的字符串
-            System.out.println("origion_str："+origion_str);
-            String str = origion_str.substring(1, origion_str.length()).trim();//裁剪
-            System.out.println("str:"+str);
-            //matchr.start()：获得被匹配到的子串在原串的起始位置
-            strb.append(msg.substring(idx, matchr.start()));
-            strb.append(Constant.BLOG_AT_USER_HYPERLINK_PREFIX + "123" + Constant.BLOG_AT_USER_HYPERLINK_INFIX)
-                    .append(origion_str).append(Constant.BLOG_AT_USER_HYPERLINK_SUFFIX);
-            idx=matchr.start()+origion_str.length();
-
-
-//            System.out.println(msg.substring(idx, matchr.start()));
-        }
-        strb.append(msg.substring(idx));
-        System.out.println(strb);
-    }
+//    public static void main(String[] args) {
+//        StringBuffer strb=new StringBuffer();//用来拼接博客内容
+//        //下面的代码不能有^与$,加了会对整个字符串进行匹配，如果字符串不是以@号开头则不匹配
+//        //不加则可以用来对字符串中每个子串都进行匹配判断
+//        Pattern referer_pattern = Pattern.compile("@([^@^\\s]{1,})([\\s]{0,1})");//@.+?[\\s:]
+//        String msg = "qweqweqweqw@admin :奥德赛 @ijasdi:@jsidj @@1231 @加急 123";
+//        String usname = "";
+//        int idx = 0;
+//        Matcher matchr = referer_pattern.matcher(msg);
+//        //之前字符串中匹配到的位置不会在被匹配到，会往后开始匹配，配合while循环做到匹配整个字符串中所有符合正则表达式的子串
+//        while (matchr.find()){//为true说明匹配，为false说明不匹配
+//            String origion_str = matchr.group();//获取匹配到的字符串
+//            System.out.println("origion_str："+origion_str);
+//            String str = origion_str.substring(1, origion_str.length()).trim();//裁剪
+//            System.out.println("str:"+str);
+//            //matchr.start()：获得被匹配到的子串在原串的起始位置
+//            strb.append(msg.substring(idx, matchr.start()));
+//            strb.append(Constant.BLOG_AT_USER_HYPERLINK_PREFIX + "123" + Constant.BLOG_AT_USER_HYPERLINK_INFIX)
+//                    .append(origion_str).append(Constant.BLOG_AT_USER_HYPERLINK_SUFFIX);
+//            idx=matchr.start()+origion_str.length();
+//
+//
+////            System.out.println(msg.substring(idx, matchr.start()));
+//        }
+//        strb.append(msg.substring(idx));
+//        System.out.println(strb);
+//    }
 
     //#测试
 //    public static void main(String[] args) {
@@ -147,5 +147,6 @@ class ServiceBlogApplicationTests {
 //        strb.append(msg.substring(idx));
 //        System.out.println(strb);
 //    }
+
 
 }
