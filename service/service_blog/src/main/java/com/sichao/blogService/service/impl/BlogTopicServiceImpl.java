@@ -2,7 +2,6 @@ package com.sichao.blogService.service.impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.sichao.blogService.crontask.BlogServiceCronTask;
 import com.sichao.blogService.entity.BlogTopic;
 import com.sichao.blogService.entity.vo.PublishTopicVo;
 import com.sichao.blogService.entity.vo.TopicInfoVo;
@@ -39,8 +38,6 @@ import java.util.Set;
 public class BlogTopicServiceImpl extends ServiceImpl<BlogTopicMapper, BlogTopic> implements BlogTopicService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
-    @Autowired
-    private BlogServiceCronTask blogServiceCronTask;
 
 
     //发布话题
@@ -84,9 +81,6 @@ public class BlogTopicServiceImpl extends ServiceImpl<BlogTopicMapper, BlogTopic
         }else if(stringRedisTemplate.keys(hotTopicTempKey)!=null  && !stringRedisTemplate.keys(hotTopicTempKey).isEmpty()){
             //去临时热搜榜查，因为可能是在更新热搜榜之前删除热搜榜的key导致无法获取，而此时临时热搜榜是有数据的，所以可以在这里查
             set=zSet.reverseRange(hotTopicTempKey, 0, 49);
-        }else{
-            blogServiceCronTask.refreshHotTopic();//查询不到时，调用定时任务类的方法，查询热搜榜的带redis中
-            set=zSet.reverseRange(hotTopicKey, 0, 49);
         }
         if(set==null) return null;
 

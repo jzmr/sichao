@@ -1,7 +1,21 @@
 package com.sichao.blogService.controller;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import com.sichao.blogService.entity.vo.BlogVo;
+import com.sichao.blogService.entity.vo.CommentVo;
+import com.sichao.blogService.entity.vo.PublishBlogVo;
+import com.sichao.blogService.entity.vo.PublishCommentVo;
+import com.sichao.blogService.service.BlogCommentService;
+import com.sichao.common.interceptor.TokenRefreshInterceptor;
+import com.sichao.common.utils.R;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * <p>
@@ -12,7 +26,49 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 2023-04-29
  */
 @RestController
-@RequestMapping("/blogService/blog-comment")
+@RequestMapping("/blogService/blogComment")
+@Tag(name = "博客评论模块")
 public class BlogCommentController {
+    @Autowired
+    private BlogCommentService blogCommentService;
+    //发布评论(博客下评论、父评论)
+    @Operation(summary = "发布评论(博客下评论、父评论)")
+    @PostMapping("/saveComment")
+    public R saveComment(@RequestBody PublishCommentVo publishCommentVo){
+        //threadLocal中无数据时说明未登录
+        HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
+        if(map==null)return R.error().message("未登录");
+
+        blogCommentService.saveComment(map.get("userId"),publishCommentVo.getBlogId(), publishCommentVo.getContent());
+        return R.ok();
+    }
+
+    //删除评论、博客评论数-1
+    @Operation(summary = "删除评论、博客评论数-1")
+    @DeleteMapping("/deleteComment/{commentId}")
+    public R deleteComment(@PathVariable("commentId") String commentId){
+        //threadLocal中无数据时说明未登录
+        HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
+        if(map==null)return R.error().message("未登录");
+
+        blogCommentService.deleteComment(map.get("userId"),commentId);
+        return R.ok();
+    }
+
+    //分页查询指定博客id下的评论（根据发布时间升序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
+    @Operation(summary = "分页查询指定博客id下的评论")
+    @GetMapping("/getCommentByBlogId/{blogId}/{page}/{limit}")
+    public R getCommentByBlogId(@PathVariable("blogId") String blogId,@PathVariable("page") int page,@PathVariable("limit") int limit){
+        //threadLocal中无数据时说明未登录
+        HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
+        String userId=null;
+        if(map!=null)userId=map.get("userId");
+
+        PageHelper.startPage(page, limit);
+        List<CommentVo> commentList = blogCommentService.getCommentByBlogId(userId,blogId);
+        PageInfo pageInfo=new PageInfo(commentList);
+        return R.ok().data("commentList",commentList).data("pageInfo",pageInfo);
+    }
+
 
 }

@@ -2,4 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sichao.blogService.mapper.BlogCommentMapper">
 
+    <!-- 查询指定博客id下的评论（根据发布时间升序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）-->
+    <select id="getCommentByBlogId" resultType="com.sichao.blogService.entity.vo.CommentVo">
+        SELECT bc.id,bc.blog_id,bc.creator_id,bc.comment_content,bc.like_count,bc.create_time,
+               (SELECT COUNT(1) FROM blog_comment_like_user WHERE comment_id=bc.id and user_id=#{userId} and status=1)isLikeByCurrentUser
+        FROM blog_comment bc WHERE blog_id=#{blogId} AND is_deleted = 0 ORDER BY create_time
+    </select>
 </mapper>

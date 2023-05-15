@@ -2,8 +2,10 @@ package com.sichao.blogService.crontask;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.sichao.blogService.entity.Blog;
 import com.sichao.blogService.entity.BlogTopic;
 import com.sichao.blogService.entity.vo.TopicTitleVo;
+import com.sichao.blogService.service.BlogService;
 import com.sichao.blogService.service.BlogTopicService;
 import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
@@ -45,6 +47,8 @@ public class BlogServiceCronTask {
     private RedissonClient redissonClient;
     @Autowired
     private TaskExecutionInfoMapper taskExecutionInfoMapper;
+    @Autowired
+    private BlogService blogService;
 
 
     //每隔1个小时，动态计算三日内创建的话题热度
@@ -157,14 +161,13 @@ public class BlogServiceCronTask {
     @Async
     @Scheduled(cron = "* * 3 * * ?")//每天三点
 //    @Scheduled(cron = "1 * * * * ?")//每分钟的第一秒
-    public void topicDiscussionModifyToDisk() throws InterruptedException {
+    public void topicDiscussionModifyToDisk() {
         log.info("topicDiscussionModifyToDisk定时任务开始");
-        String cronTaskLock = PrefixKeyConstant.USER_CRON_TASK_LOCK_PREFIX + "topicDiscussionModifyToDisk";//定时任务锁
+        String cronTaskLock = PrefixKeyConstant.BLOG_CRON_TASK_LOCK_PREFIX + "topicDiscussionModifyToDisk";//定时任务锁
         String topicDiscussionModifyPrefix = PrefixKeyConstant.BLOG_TOPIC_DISCUSSION_MODIFY_PREFIX;//话题讨论数变化前缀
 
 
         //定时任务要使用分布式锁，使得该定时任务只被执行一次，且如果定时任务出现异常，要捕获后写入定时任务异常表
-        // TODO 是否可以不用分布式锁，让每一个节点都去执行。因为使用lua脚本保证了原子性，如果脚本执行返回为null则不进行落盘操作，如果该key不存在也不进行落盘操作
         RLock lock = redissonClient.getLock(cronTaskLock);
         //尝试获得锁
         if (lock.tryLock()) {//获得锁
@@ -190,9 +193,10 @@ public class BlogServiceCronTask {
                                     return num
                                     """;
                             long modifyCount = stringRedisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class), Arrays.asList(key));
-                            //落盘到用户表中
+                            //落盘到话题表中
                             String topicId = key.substring(key.lastIndexOf(':') + 1);//裁取话题id
                             BlogTopic topic = blogTopicService.getById(topicId);
+                            if(topic == null)continue;//无数据说明跳过
                             topic.setTotalDiscussion((int) (topic.getTotalDiscussion()+modifyCount));
                             blogTopicService.updateById(topic);
                         } catch (Exception e) {
@@ -222,6 +226,105 @@ public class BlogServiceCronTask {
         }
 
 
+    }
+
+
+    //将缓存中的博客表中博客评论数变化数、点赞数变化数定时任务落盘到数据库中
+    @Async
+    @Scheduled(cron = "* * 3 * * ?")//每天三点
+//    @Scheduled(cron = "1 * * * * ?")//每分钟的第一秒
+    public void blogCountModifyToDisk() {
+        log.info("blogCountModifyToDisk定时任务开始");
+        String cronTaskLock = PrefixKeyConstant.BLOG_CRON_TASK_LOCK_PREFIX + "blogCountModifyToDisk";//定时任务锁
+        String commentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数变化数前缀
+        String blogLokeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数变化数前缀
+
+
+        //定时任务要使用分布式锁，使得该定时任务只被执行一次，且如果定时任务出现异常，要捕获后写入定时任务异常表
+        RLock lock = redissonClient.getLock(cronTaskLock);
+        //尝试获得锁
+        if (lock.tryLock()) {//获得锁
+            //记录任务执行信息，记录任务开始时间
+            TaskExecutionInfo taskInfo = new TaskExecutionInfo(
+                    "blogCountModifyToDisk",
+                    "将缓存中的博客表中博客评论数变化数、点赞数变化数定时任务落盘到数据库中",
+                    LocalDateTime.now(), (byte) 0);
+            taskExecutionInfoMapper.insert(taskInfo);
+
+            try {
+                // 业务代码
+                //处理博客评论数变化数
+                Set<String> commentCountModifyKeys = stringRedisTemplate.keys(commentCountModifyPrefix + "*");
+                if (commentCountModifyKeys != null) {
+                    for (String key : commentCountModifyKeys) {
+                        //处理多个数据时，当处理到某个数据出现异常是，记录异常信息并抛出异常给外围try...catch捕获
+                        try {
+                            //lua脚本：获取指定key的value值并删除key。使用lua脚本保证操作多次操作的原子性
+                            String script = """
+                                    local num= redis.call('GET',KEYS[1])
+                                    redis.call('DEL',KEYS[1])
+                                    return num
+                                    """;
+                            long modifyCount = stringRedisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class), Arrays.asList(key));
+                            //落盘到博客表中
+                            String blogId = key.substring(key.lastIndexOf(':') + 1);//裁取博客id
+                            Blog blog = blogService.getById(blogId);
+                            if(blog == null)continue;//无数据说明跳过
+                            blog.setCommentCount((int) (blog.getCommentCount()+modifyCount));
+                            blogService.updateById(blog);
+                        } catch (Exception e) {
+                            taskInfo.setExceptionInfo("处理博客\"" + key.substring(key.lastIndexOf(':') + 1) + "\"评论数变化数时出现异常");
+                            throw new sichaoException(Constant.FAILURE_CODE,
+                                    "处理博客\"" + key.substring(key.lastIndexOf(':') + 1) + "\"评论数变化数时出现异常");
+                        }
+
+                    }
+                }
+
+                //处理博客点赞变化数
+                Set<String> blogLikeCountModifyKeys = stringRedisTemplate.keys(blogLokeCountModifyPrefix + "*");
+                if (blogLikeCountModifyKeys != null) {
+                    for (String key : blogLikeCountModifyKeys) {
+                        //处理多个数据时，当处理到某个数据出现异常是，记录异常信息并抛出异常给外围try...catch捕获
+                        try {
+                            //lua脚本：获取指定key的value值并删除key。使用lua脚本保证操作多次操作的原子性
+                            String script = """
+                                    local num= redis.call('GET',KEYS[1])
+                                    redis.call('DEL',KEYS[1])
+                                    return num
+                                    """;
+                            long modifyCount = stringRedisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class), Arrays.asList(key));
+                            //落盘到博客表中
+                            String blogId = key.substring(key.lastIndexOf(':') + 1);//裁取博客id
+                            Blog blog = blogService.getById(blogId);
+                            if(blog == null)continue;//无数据说明跳过
+                            blog.setLikeCount((int) (blog.getLikeCount()+modifyCount));
+                            blogService.updateById(blog);
+                        } catch (Exception e) {
+                            taskInfo.setExceptionInfo("处理博客\"" + key.substring(key.lastIndexOf(':') + 1) + "\"点赞数变化数时出现异常");
+                            throw new sichaoException(Constant.FAILURE_CODE,
+                                    "处理博客\"" + key.substring(key.lastIndexOf(':') + 1) + "\"点赞数变化数时出现异常");
+                        }
+
+                    }
+                }
+
+                //任务执行成功
+                taskInfo.setStatus((byte) 1);
+                taskInfo.setEndTime(LocalDateTime.now());//设置任务结束时间
+                taskExecutionInfoMapper.updateById(taskInfo);
+                log.info("blogCountModifyToDisk定时任务结束");
+            } catch (Exception e) {
+                //任务执行失败
+                taskInfo.setStatus((byte) 2);
+                taskExecutionInfoMapper.updateById(taskInfo);
+                log.error("blogCountModifyToDisk定时任务执行失败");
+            } finally {
+                lock.unlock();//解锁
+            }
+        } else {
+            // 未获得锁，忽略
+        }
     }
 
 }

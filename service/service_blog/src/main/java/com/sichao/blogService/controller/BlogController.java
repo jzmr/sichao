@@ -37,7 +37,7 @@ public class BlogController {
     @Operation(summary = "发布博客")
     @PostMapping("/saveBlog")
     public R saveBlog(@RequestBody PublishBlogVo publishBlogVo){
-        //threadLocal中无数据时说明未登录 TODO
+        //threadLocal中无数据时说明未登录
         HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
         if(map==null)return R.error().message("未登录");
 
@@ -45,6 +45,19 @@ public class BlogController {
         blogService.saveBlog(publishBlogVo);
         return R.ok();
     }
+
+    //删除博客及其下的所有评论，以及点赞关系、话题关系、并自减各个数据
+    @Operation(summary = "删除博客及其下的所有评论，以及点赞关系、话题关系、并自减各个数据")
+    @DeleteMapping("/deleteBlog/{blogId}")
+    public R deleteBlog(@PathVariable("blogId") String blogId){
+        //threadLocal中无数据时说明未登录
+        HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
+        if(map==null)return R.error().message("未登录");
+
+        blogService.deleteBlog(map.get("userId"),blogId);
+        return R.ok();
+    }
+
 
     //分页查询指定话题id下的博客（根据博客评论数+点赞数倒序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
     @Operation(summary = "分页查询指定话题id下的博客")
@@ -60,5 +73,7 @@ public class BlogController {
         PageInfo pageInfo=new PageInfo(blogList);
         return R.ok().data("blogList",blogList).data("pageInfo",pageInfo);
     }
+
+    //分页查询指定话题id下的实时博客（根据博客发布时间倒序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
 
 }

@@ -12,5 +12,12 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @since 2023-04-29
  */
 public interface BlogLikeUserService extends IService<BlogLikeUser> {
+    //点赞博客
+    void likeBlog(String userId, String blogId);
+    //取消点赞博客
+    void unlikeBlog(String userId, String blogId);
 
+    //=======================================
+    //删除点赞关系(批量)并返回删除已点赞关系数目
+    int deleteLikeBatchByBlogId(String blogId);
 }

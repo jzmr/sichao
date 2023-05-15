@@ -8,10 +8,10 @@ import com.sichao.blogService.entity.BlogTopic;
 import com.sichao.blogService.entity.vo.BlogVo;
 import com.sichao.blogService.entity.vo.PublishBlogVo;
 import com.sichao.blogService.mapper.BlogMapper;
-import com.sichao.blogService.service.BlogService;
+import com.sichao.blogService.service.*;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.sichao.blogService.service.BlogTopicService;
 import com.sichao.common.constant.Constant;
+import com.sichao.common.constant.PrefixKeyConstant;
 import com.sichao.common.constant.RabbitMQConstant;
 import com.sichao.common.entity.MqMessage;
 import com.sichao.common.entity.to.UserInfoTo;
@@ -22,6 +22,8 @@ import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -48,6 +50,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
     private RabbitTemplate rabbitTemplate;
     @Autowired
     private MqMessageMapper mqMessageMapper;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
 
     //发布博客
@@ -142,6 +146,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         BeanUtils.copyProperties(publishBlogVo,blog);
         blog.setContent(strb.toString());//拼接了超链接的博客内容
         baseMapper.insert(blog);
+        //用户博客数+1
+        userClient.userBlogCountPlusOne(blog.getCreatorId());
+        stringRedisTemplate.delete(PrefixKeyConstant.USER_INFO_PREFIX + blog.getCreatorId());//删除用户信息缓存，使得用户博客数可以立即更新之前数据
 
         //RabbitMQ发送消息，异步实现对@用户与#话题#的处理
         //博客中有#话题#时
@@ -180,6 +187,33 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
 
     }
 
+    //删除博客及其下的所有评论，以及点赞关系、话题关系、并自减各个数据
+    @Transactional
+    @Override
+    public void deleteBlog(String userId, String blogId) {
+        //先查看博客是否存在且当前用户是该博客的作者，是则可以删除，不是则不能做删除操作
+        Blog blog = baseMapper.selectById(blogId);
+        if(blog==null || !blog.getCreatorId().equals(userId)){
+            throw new sichaoException(Constant.FAILURE_CODE,"删除博客异常，博客不存在或者当前用户不是该博客作者");
+        }
+        //删除博客
+        baseMapper.deleteById(blogId);
+
+        //RabbitMQ异步处理删除博客之后的操作
+        Map<String,Object> map = new HashMap<>();
+        map.put("blogId",blogId);
+        map.put("userId",userId);
+        //发送消息前先记录数据
+        String topicMapJson = JSON.toJSONString(map);
+        MqMessage topicMqMessage = new MqMessage(topicMapJson,RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_DELETE_ROUTINGKEY,
+                "Map<String,Object>",(byte)0);
+        mqMessageMapper.insert(topicMqMessage);
+
+        //指定路由，给交换机发送数据，并且携带数据标识
+        rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_DELETE_ROUTINGKEY,
+                map,new CorrelationData(topicMqMessage.getId()));//以mq消息表id作为数据标识
+    }
+
     //查询指定话题id下的博客
     @Override
     public List<BlogVo> getBlogByTopicId(String userId, String topicId) {
@@ -207,6 +241,18 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             UserInfoTo userInfoTo = JSON.parseObject(toJSONString, UserInfoTo.class);
             blogVo.setNickname(userInfoTo.getNickname());
             blogVo.setAvatarUrl(userInfoTo.getAvatarUrl());
+
+            //加上redis中的评论数变化数与点赞数变化数
+            ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+            String commentCountModify = ops.get(PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX + blogVo.getId());
+            if(commentCountModify!=null){
+                blogVo.setCommentCount(blogVo.getCommentCount()+Integer.parseInt(commentCountModify));
+            }
+
+            String likeCountModify = ops.get(PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX + blogVo.getId());
+            if(likeCountModify!=null) {
+                blogVo.setLikeCount(blogVo.getLikeCount()+Integer.parseInt(likeCountModify));
+            }
         }
     }
 }

@@ -3,6 +3,6 @@
 <mapper namespace="com.sichao.userService.mapper.UserMapper">
 
     <select id="userIsDisabled" resultType="java.lang.Boolean">
-        select status from user where id = #{userId}
+        select status from user where id = #{userId} AND is_deleted = 0
     </select>
 </mapper>

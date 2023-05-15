@@ -48,6 +48,6 @@ public class UserInfoVo {
     @Schema(description = "总博客数(0_65535)")
     private Short blogCount;
 
-    @Schema(description = "总点赞数")
+    @Schema(description = "总获得点赞数")
     private Integer totalLikeCount;
 }

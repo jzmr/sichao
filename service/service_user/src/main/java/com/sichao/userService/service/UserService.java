@@ -41,4 +41,8 @@ public interface UserService extends IService<User> {
     String getUserIdByNickname(String nickname);
     //根据用户id查询用户信息
     UserInfoTo getUserById(String id);
+    //根据用户id对其博客数+1
+    void userBlogCountPlusOne(String id);
+    //根据用户id对其博客数-1
+    void userBlogCountMinusOne(String id);
 }

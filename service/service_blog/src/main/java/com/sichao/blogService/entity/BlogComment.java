@@ -1,9 +1,7 @@
 package com.sichao.blogService.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -59,18 +57,20 @@ public class BlogComment implements Serializable {
     private Byte status;
 
     @Schema(description = "是否逻辑删除：1（true）、0（false），默认为0")
+    @TableLogic//指定对应字段做逻辑删除操作
     @TableField("is_deleted")
-    private Byte isDeleted;
+    private Boolean isDeleted;
 
     @Schema(description = "版本号（乐观锁操作要用到）")
+    @Version//指定对应字段做乐观锁操作
     @TableField("version")
     private Integer version;
 
     @Schema(description = "创建时间")
-    @TableField("create_time")
+    @TableField(value = "create_time",fill = FieldFill.INSERT)//插入数据时执行填充
     private LocalDateTime createTime;
 
     @Schema(description = "修改时间")
-    @TableField("update_time")
+    @TableField(value = "update_time",fill = FieldFill.INSERT_UPDATE)//插入或修改数据时执行填充
     private LocalDateTime updateTime;
 }

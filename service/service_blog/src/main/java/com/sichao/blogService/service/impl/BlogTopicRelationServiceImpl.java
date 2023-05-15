@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -55,5 +56,28 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
             ops.increment(topicDiscussionModifyKey);//自增，如果key不存在，则先创建整个key且值为0，而后再自增
 
         }
+    }
+
+    //根据博客id查询话题id
+    @Override
+    public List<String> getTopicIdByBlogId(String blogId) {
+        QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
+        wrapper.eq("blog_id",blogId);
+        wrapper.select("topic_id");
+        List<BlogTopicRelation> list = baseMapper.selectList(wrapper);
+
+        List<String> topicIdList = new ArrayList<>();
+        for (BlogTopicRelation blogTopicRelation : list) {
+            topicIdList.add(blogTopicRelation.getTopicId());
+        }
+        return topicIdList;
+    }
+
+    //删除博客与话题关系(批量)
+    @Override
+    public void deleteRelationBatchByBlogId(String blogId) {
+        QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
+        wrapper.eq("blog_id",blogId);
+        baseMapper.delete(wrapper);
     }
 }

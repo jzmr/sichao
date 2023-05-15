@@ -206,6 +206,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String userInfoLockKey = PrefixKeyConstant.USER_INFO_LOCK_PREFIX + id;//用户信息锁key
         String followerModifyKey = PrefixKeyConstant.USER_FOLLOWER_MODIFY_PREFIX + id;//用户粉丝变化数key
         String followingModifyKey = PrefixKeyConstant.USER_FOLLOWING_MODIFY_PREFIX + id;//用户关注变化数key
+        String likeCountModifyKey = PrefixKeyConstant.USER_LIKE_COUNT_MODIFY_PREFIX + id;//用户总获得点赞变化数key
 
         UserInfoVo userInfo = JSON.parseObject(ops.get(userInfoKey), UserInfoVo.class);
         if(userInfo == null){
@@ -227,7 +228,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 lock.unlock();//解锁
             }
         }
-        //查询用户关注数、粉丝数、博客数、获赞数 TODO
+        //查询用户关注数、粉丝数、获赞数、博客数(发布博客后删除缓存)
         //保存在数据库中的关注数与粉丝数不是实时的数据，要加上redis中的变化数，之后会使用定时任务落盘数据到msyql并清除变化数缓存
         String followerModifyCount = ops.get(followerModifyKey);
         if(followerModifyCount != null){//加上粉丝变化数
@@ -237,6 +238,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(followingModifyCount!=null){//加上关注变化数
             userInfo.setFollowingCount((short) (userInfo.getFollowingCount()+Integer.parseInt(followingModifyCount)));
         }
+        String likeCountModifyCount = ops.get(likeCountModifyKey);
+        if(likeCountModifyCount!=null){//加上用户总获得点赞数变化数
+            userInfo.setTotalLikeCount(userInfo.getTotalLikeCount()+Integer.parseInt(likeCountModifyCount));
+        }
+
         return userInfo;
     }
     //修改头像url
@@ -294,6 +300,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = baseMapper.selectById(id);
         UserInfoTo userInfoTo = new UserInfoTo(user.getId(),user.getNickname(),user.getAvatarUrl());
         return userInfoTo;
+    }
+
+    //根据用户id对其博客数+1
+    @Transactional
+    @Override
+    public void userBlogCountPlusOne(String id) {
+        User user = baseMapper.selectById(id);
+        user.setBlogCount((short) (user.getBlogCount()+1));
+        baseMapper.updateById(user);
+    }
+
+    //根据用户id对其博客数-1
+    @Override
+    public void userBlogCountMinusOne(String id) {
+        User user = baseMapper.selectById(id);
+        user.setBlogCount((short) (user.getBlogCount()-1));
+        baseMapper.updateById(user);
     }
 
 

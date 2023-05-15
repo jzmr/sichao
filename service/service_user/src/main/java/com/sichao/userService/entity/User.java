@@ -77,7 +77,7 @@ public class User implements Serializable {
     @TableField("blog_count")
     private Short blogCount;
 
-    @Schema(description = "总点赞数")
+    @Schema(description = "总获得点赞数")
     @TableField("total_like_count")
     private Integer totalLikeCount;
 

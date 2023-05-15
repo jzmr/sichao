@@ -135,6 +135,21 @@ public class UserController {
         UserInfoTo userInfoTo = userService.getUserById(id);
         return R.ok().data("userInfoTo",userInfoTo);
     }
+    //根据用户id对其博客数+1(用于远程调用)
+    @Operation(summary = "根据用户id对其博客数+1(用于远程调用)")
+    @PostMapping("/userBlogCountPlusOne")
+    public R userBlogCountPlusOne(String id){
+        userService.userBlogCountPlusOne(id);
+        return R.ok();
+    }
+
+    //根据用户id对其博客数-1(用于远程调用)
+    @Operation(summary = "根据用户id对其博客数-1(用于远程调用)")
+    @PostMapping("/userBlogCountMinusOne")
+    public R userBlogCountMinusOne(String id){
+        userService.userBlogCountMinusOne(id);
+        return R.ok();
+    }
 
 
 }

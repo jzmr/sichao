@@ -167,4 +167,37 @@ public class RabbitMQConfig {
                 null);
     }
 
+    //评论@用户的队列
+    @Bean
+    public Queue blogCommentAtUserQueue(){
+        return new Queue(RabbitMQConstant.BLOG_COMMENT_AT_USER_QUEUE,true,false,false);
+    }
+    //评论@用户的队列绑定交换机
+    @Bean
+    public Binding blogCommentAtUserQueueBinding(){
+        //给这个队列绑定交换机和路由，当生产者给这个交换机和路由发送消息时，会把消息发送给该队列
+        return new Binding(RabbitMQConstant.BLOG_COMMENT_AT_USER_QUEUE,
+                Binding.DestinationType.QUEUE,
+                RabbitMQConstant.BLOG_EXCHANGE,
+                RabbitMQConstant.BLOG_COMMENT_AT_USER_ROUTINGKEY,
+                null);
+    }
+
+
+    //博客删除的队列
+    @Bean
+    public Queue blogDeleteQueue(){
+        return new Queue(RabbitMQConstant.BLOG_DELETE_QUEUE,true,false,false);
+    }
+    //博客删除的队列绑定交换机
+    @Bean
+    public Binding blogDeleteQueueBinding(){
+        //给这个队列绑定交换机和路由，当生产者给这个交换机和路由发送消息时，会把消息发送给该队列
+        return new Binding(RabbitMQConstant.BLOG_DELETE_QUEUE,
+                Binding.DestinationType.QUEUE,
+                RabbitMQConstant.BLOG_EXCHANGE,
+                RabbitMQConstant.BLOG_DELETE_ROUTINGKEY,
+                null);
+    }
+
 }

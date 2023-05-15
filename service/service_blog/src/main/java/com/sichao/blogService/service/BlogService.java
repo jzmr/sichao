@@ -18,6 +18,8 @@ import java.util.List;
 public interface BlogService extends IService<Blog> {
     //发布博客
     void saveBlog(PublishBlogVo publishBlogVo);
+    //删除博客及其下的所有评论，以及点赞关系、话题关系、并自减各个数据
+    void deleteBlog(String userId, String blogId);
     //分页查询指定话题id下的博客
     List<BlogVo> getBlogByTopicId(String userId, String topicId);
 }

@@ -47,7 +47,7 @@ public class BlogVo {
     private List<String> imgList;
 
     @Schema(description = "当前用户是否点赞该博客，未登录则默认为点赞")
-    private boolean isPraiseByCurrentUser;
+    private boolean isLikeByCurrentUser;//前端中会吞掉is，保存likeByCurrentUser
 
 
 

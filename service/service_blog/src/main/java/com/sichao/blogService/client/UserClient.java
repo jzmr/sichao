@@ -32,5 +32,15 @@ public interface UserClient {
     //根据用户id查询用户信息(用于远程调用)
     @Operation(summary = "根据用户id查询用户信息(用于远程调用)")
     @GetMapping("/userService/user/getUserById")
-    public R getUserById(@RequestParam("id")String id);
+    public R getUserById(@RequestParam("id") String id);
+
+    //根据用户id对其博客数+1(用于远程调用)
+    @Operation(summary = "根据用户id对其博客数+1(用于远程调用)")
+    @PostMapping("/userService/user/userBlogCountPlusOne")
+    public R userBlogCountPlusOne(@RequestParam("id") String id);
+
+    //根据用户id对其博客数-1(用于远程调用)
+    @Operation(summary = "根据用户id对其博客数-1(用于远程调用)")
+    @PostMapping("/userService/user/userBlogCountMinusOne")
+    public R userBlogCountMinusOne(@RequestParam("id") String id);
 }
