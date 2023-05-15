@@ -8,4 +8,9 @@
                (SELECT COUNT(1) FROM blog_comment_like_user WHERE comment_id=bc.id and user_id=#{userId} and status=1)isLikeByCurrentUser
         FROM blog_comment bc WHERE blog_id=#{blogId} AND is_deleted = 0 ORDER BY create_time
     </select>
+    <select id="getCommentByBlogIdDesc" resultType="com.sichao.blogService.entity.vo.CommentVo">
+        SELECT bc.id,bc.blog_id,bc.creator_id,bc.comment_content,bc.like_count,bc.create_time,
+               (SELECT COUNT(1) FROM blog_comment_like_user WHERE comment_id=bc.id and user_id=#{userId} and status=1)isLikeByCurrentUser
+        FROM blog_comment bc WHERE blog_id=#{blogId} AND is_deleted = 0 ORDER BY create_time DESC
+    </select>
 </mapper>

@@ -22,4 +22,6 @@ public interface BlogService extends IService<Blog> {
     void deleteBlog(String userId, String blogId);
     //分页查询指定话题id下的博客
     List<BlogVo> getBlogByTopicId(String userId, String topicId);
+    //分页查询指定话题id下的实时博客
+    List<BlogVo> getRealTimeBlogByTopicId(String userId, String topicId);
 }

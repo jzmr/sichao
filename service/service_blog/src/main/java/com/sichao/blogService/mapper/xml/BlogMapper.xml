@@ -10,4 +10,12 @@
         WHERE t.topic_id = #{topicId} AND t.is_deleted = 0
         ORDER BY (b.comment_count+b.like_count) DESC
     </select>
+    <select id="getRealTimeBlogByTopicId" resultType="com.sichao.blogService.entity.vo.BlogVo">
+        SELECT b.id,b.content,b.creator_id,b.comment_count,b.like_count,b.img_one,b.img_Two,b.img_Three,b.img_Four,b.create_time,
+               (SELECT COUNT(1) FROM blog_like_user WHERE blog_id=b.id and user_id=#{userId} and status=1) isLikeByCurrentUser
+        FROM blog_topic_relation t
+                 LEFT JOIN blog b ON t.blog_id = b.id
+        WHERE t.topic_id = #{topicId} AND t.is_deleted = 0
+        ORDER BY create_time DESC
+    </select>
 </mapper>

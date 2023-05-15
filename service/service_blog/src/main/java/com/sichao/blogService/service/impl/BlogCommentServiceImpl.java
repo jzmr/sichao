@@ -163,11 +163,20 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
     }
 
 
-    //查询指定博客id下的评论
+    //查询指定博客id下的评论(升序)
     @Override
     public List<CommentVo> getCommentByBlogId(String userId, String blogId) {
         //查询评论
         List<CommentVo> CommentVoList = baseMapper.getCommentByBlogId(userId,blogId);
+        blogListHandle(CommentVoList);
+        return CommentVoList;
+    }
+
+    //查询指定博客id下的评论（倒序）
+    @Override
+    public List<CommentVo> getCommentByBlogIdDesc(String userId, String blogId) {
+        //查询评论
+        List<CommentVo> CommentVoList = baseMapper.getCommentByBlogIdDesc(userId,blogId);
         blogListHandle(CommentVoList);
         return CommentVoList;
     }

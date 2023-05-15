@@ -59,7 +59,7 @@ public class BlogController {
     }
 
 
-    //分页查询指定话题id下的博客（根据博客评论数+点赞数倒序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
+    //分页查询指定话题id下的博客（TODO 根据博客评论数+点赞数倒序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
     @Operation(summary = "分页查询指定话题id下的博客")
     @GetMapping("/getBlogByTopicId/{topicId}/{page}/{limit}")
     public R getBlogByTopicId(@PathVariable("topicId") String topicId,@PathVariable("page") int page,@PathVariable("limit") int limit){
@@ -74,6 +74,19 @@ public class BlogController {
         return R.ok().data("blogList",blogList).data("pageInfo",pageInfo);
     }
 
-    //分页查询指定话题id下的实时博客（根据博客发布时间倒序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
 
+    //分页查询指定话题id下的实时博客（根据博客发布时间倒序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
+    @Operation(summary = "分页查询指定话题id下的实时博客")
+    @GetMapping("/getRealTimeBlogByTopicId/{topicId}/{page}/{limit}")
+    public R getRealTimeBlogByTopicId(@PathVariable("topicId") String topicId,@PathVariable("page") int page,@PathVariable("limit") int limit){
+        //threadLocal中无数据时说明未登录
+        HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
+        String userId=null;
+        if(map!=null)userId=map.get("userId");
+
+        PageHelper.startPage(page, limit);
+        List<BlogVo> blogList = blogService.getRealTimeBlogByTopicId(userId,topicId);
+        PageInfo pageInfo=new PageInfo(blogList);
+        return R.ok().data("blogList",blogList).data("pageInfo",pageInfo);
+    }
 }

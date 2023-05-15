@@ -56,7 +56,7 @@ public class BlogCommentController {
     }
 
     //分页查询指定博客id下的评论（根据发布时间升序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
-    @Operation(summary = "分页查询指定博客id下的评论")
+    @Operation(summary = "分页查询指定博客id下的评论（根据发布时间升序）")
     @GetMapping("/getCommentByBlogId/{blogId}/{page}/{limit}")
     public R getCommentByBlogId(@PathVariable("blogId") String blogId,@PathVariable("page") int page,@PathVariable("limit") int limit){
         //threadLocal中无数据时说明未登录
@@ -66,6 +66,21 @@ public class BlogCommentController {
 
         PageHelper.startPage(page, limit);
         List<CommentVo> commentList = blogCommentService.getCommentByBlogId(userId,blogId);
+        PageInfo pageInfo=new PageInfo(commentList);
+        return R.ok().data("commentList",commentList).data("pageInfo",pageInfo);
+    }
+
+    //分页查询指定博客id下的评论（根据发布时间倒序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
+    @Operation(summary = "分页查询指定博客id下的评论（根据发布时间倒序）")
+    @GetMapping("/getCommentByBlogIdDesc/{blogId}/{page}/{limit}")
+    public R getCommentByBlogIdDesc(@PathVariable("blogId") String blogId,@PathVariable("page") int page,@PathVariable("limit") int limit){
+        //threadLocal中无数据时说明未登录
+        HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
+        String userId=null;
+        if(map!=null)userId=map.get("userId");
+
+        PageHelper.startPage(page, limit);
+        List<CommentVo> commentList = blogCommentService.getCommentByBlogIdDesc(userId,blogId);
         PageInfo pageInfo=new PageInfo(commentList);
         return R.ok().data("commentList",commentList).data("pageInfo",pageInfo);
     }

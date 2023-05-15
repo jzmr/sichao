@@ -223,6 +223,15 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         return blogVoList;
     }
 
+    //查询指定话题id下的实时博客
+    @Override
+    public List<BlogVo> getRealTimeBlogByTopicId(String userId, String topicId) {
+        //查询博客
+        List<BlogVo> blogVoList = baseMapper.getRealTimeBlogByTopicId(userId,topicId);
+        blogListHandle(blogVoList);
+        return blogVoList;
+    }
+
 
     //博客Vo列表处理
     public void blogListHandle(List<BlogVo> blogVoList){

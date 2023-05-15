@@ -17,10 +17,13 @@ import java.util.List;
 public interface BlogCommentService extends IService<BlogComment> {
     //发布评论(博客下评论、父评论)
     void saveComment(String curUserId, String blogId, String content);
-    //查询指定博客id下的评论
-    List<CommentVo> getCommentByBlogId(String userId, String blogId);
     //删除评论、博客评论数-1
     void deleteComment(String userId, String commentId);
+    //查询指定博客id下的评论（升序）
+    List<CommentVo> getCommentByBlogId(String userId, String blogId);
+    //查询指定博客id下的评论（倒序）
+    List<CommentVo> getCommentByBlogIdDesc(String userId, String blogId);
+
 
     //========================================================
     //删除评论(批量)
