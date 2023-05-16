@@ -11,4 +11,8 @@ public class RandomSxpire {
         return (long) (Math.random()*1000*60*10);
     }
 
+    //小的随机数：返回0~1分钟之间的随机毫秒值，用来防止缓存雪崩
+    public static long getMinRandomSxpire(){
+        return (long) (Math.random()*1000*60);
+    }
 }

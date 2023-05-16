@@ -80,4 +80,25 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
         wrapper.eq("blog_id",blogId);
         baseMapper.delete(wrapper);
     }
+
+    //查询话题下所有博客id
+    @Override
+    public List<BlogTopicRelation> getBlogListByTopicId(String topicId) {
+        QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
+        wrapper.eq("topic_id",topicId);
+        wrapper.select("blog_id");
+        List<BlogTopicRelation> list = baseMapper.selectList(wrapper);
+        return list;
+    }
+
+    //查询话题下所有实时博客id
+    @Override
+    public List<BlogTopicRelation> geRealTimetBlogListByTopicId(String topicId) {
+        QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
+        wrapper.eq("topic_id",topicId);
+        wrapper.select("blog_id");
+        wrapper.orderByDesc("create_time");
+        List<BlogTopicRelation> list = baseMapper.selectList(wrapper);
+        return list;
+    }
 }

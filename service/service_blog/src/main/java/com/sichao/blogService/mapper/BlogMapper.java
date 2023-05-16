@@ -17,8 +17,6 @@ import java.util.List;
  */
 @Mapper
 public interface BlogMapper extends BaseMapper<Blog> {
-    //查询指定话题id下的博客
-    List<BlogVo> getBlogByTopicId(String userId, String topicId);
-    //查询指定话题id下的实时博客
-    List<BlogVo> getRealTimeBlogByTopicId(String userId, String topicId);
+    //查询博客vo信息
+    BlogVo getBlogVoInfo(String blogId);
 }

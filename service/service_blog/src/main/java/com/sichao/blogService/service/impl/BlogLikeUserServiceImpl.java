@@ -4,16 +4,21 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.sichao.blogService.entity.Blog;
 import com.sichao.blogService.entity.BlogLikeUser;
 import com.sichao.blogService.mapper.BlogLikeUserMapper;
+import com.sichao.blogService.mapper.BlogMapper;
 import com.sichao.blogService.service.BlogLikeUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.sichao.blogService.service.BlogService;
 import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
 import com.sichao.common.exceptionhandler.sichaoException;
+import com.sichao.common.utils.RandomSxpire;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -28,13 +33,15 @@ public class BlogLikeUserServiceImpl extends ServiceImpl<BlogLikeUserMapper, Blo
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
-    private BlogService blogService;
+    private BlogMapper blogMapper;
+    @Autowired
+    private RedissonClient redissonClient;
 
     //点赞博客
     @Override
     public void likeBlog(String userId, String blogId) {
         //查看博客是否存在
-        Blog blog = blogService.getById(blogId);
+        Blog blog = blogMapper.selectById(blogId);
         if(blog==null){
             throw new sichaoException(Constant.FAILURE_CODE,"点赞异常，博客不存在");
         }
@@ -61,7 +68,6 @@ public class BlogLikeUserServiceImpl extends ServiceImpl<BlogLikeUserMapper, Blo
             ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
             String blogLikeCountModifyKey = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX + blogId;//博客点赞数变化数key
 
-            //Blog blog = blogService.getById(blogId);
             String userLikeCountModifyKey = PrefixKeyConstant.USER_LIKE_COUNT_MODIFY_PREFIX + blog.getCreatorId();//用户总获得点赞数变化数key
 
             //博客点赞数变化数+1
@@ -91,7 +97,7 @@ public class BlogLikeUserServiceImpl extends ServiceImpl<BlogLikeUserMapper, Blo
             ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
             String blogLikeCountModifyKey = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX + blogId;//博客点赞数变化数key
 
-            Blog blog = blogService.getById(blogId);
+            Blog blog = blogMapper.selectById(blogId);
             String userLikeCountModifyKey = PrefixKeyConstant.USER_LIKE_COUNT_MODIFY_PREFIX + blog.getCreatorId();//用户总获得点赞数变化数key
 
             //博客点赞数变化数-1
@@ -117,5 +123,38 @@ public class BlogLikeUserServiceImpl extends ServiceImpl<BlogLikeUserMapper, Blo
         int delete = baseMapper.delete(wrapper);
 
         return likeCount;
+    }
+
+    //查看指定用户是否点赞指定博客
+    @Override
+    public boolean getIsLikeBlogByUserId(String userId, String blogId) {
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+        String blogLikeByUserKey = PrefixKeyConstant.BLOG_LIKE_BY_USER_PREFIX+userId+"-"+blogId;//用户点赞博客信息key
+        String blogLikeByUserLockKey = PrefixKeyConstant.BLOG_LIKE_BY_USER_LOCK_PREFIX +userId+"-"+ blogId;//用户点赞博客信息锁key
+
+        String isLike = ops.get(blogLikeByUserKey);//1为已点赞，0为未点赞
+        if(isLike==null) {
+            RLock lock = redissonClient.getLock(blogLikeByUserLockKey);
+            lock.lock();//加锁，阻塞
+            try {//双查机制，在锁内再查一遍缓存中是否有数据
+                isLike = ops.get(blogLikeByUserKey);
+                if (isLike == null) {
+                    //查询点赞信息
+                    QueryWrapper<BlogLikeUser> wrapper = new QueryWrapper<>();
+                    wrapper.eq("user_id",userId);
+                    wrapper.eq("blog_id",blogId);
+                    wrapper.select("status");
+                    BlogLikeUser blogLikeUser = baseMapper.selectOne(wrapper);
+                    isLike= String.valueOf(blogLikeUser != null && blogLikeUser.getStatus());
+
+                    //保存到redis中，并设置生存时长
+                    ops.set(blogLikeByUserKey,isLike,
+                            Constant.ONE_HOURS_EXPIRE + RandomSxpire.getRandomSxpire(), TimeUnit.MILLISECONDS);
+                }
+            } finally {
+                lock.unlock();//解锁
+            }
+        }
+        return isLike.equals("true");
     }
 }

@@ -20,4 +20,6 @@ public interface BlogLikeUserService extends IService<BlogLikeUser> {
     //=======================================
     //删除点赞关系(批量)并返回删除已点赞关系数目
     int deleteLikeBatchByBlogId(String blogId);
+    //查看指定用户是否点赞指定博客
+    boolean getIsLikeBlogByUserId(String userId, String blogId);
 }

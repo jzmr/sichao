@@ -23,4 +23,8 @@ public interface BlogTopicRelationService extends IService<BlogTopicRelation> {
 
     //删除博客与话题关系(批量)
     void deleteRelationBatchByBlogId(String blogId);
+    //查询话题下所有博客id
+    List<BlogTopicRelation> getBlogListByTopicId(String topicId);
+    //查询话题下所有实时博客id
+    List<BlogTopicRelation> geRealTimetBlogListByTopicId(String topicId);
 }

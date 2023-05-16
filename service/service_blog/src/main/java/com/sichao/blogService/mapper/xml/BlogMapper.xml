@@ -1,21 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sichao.blogService.mapper.BlogMapper">
-
-    <select id="getBlogByTopicId" resultType="com.sichao.blogService.entity.vo.BlogVo">
-        SELECT b.id,b.content,b.creator_id,b.comment_count,b.like_count,b.img_one,b.img_Two,b.img_Three,b.img_Four,b.create_time,
-               (SELECT COUNT(1) FROM blog_like_user WHERE blog_id=b.id and user_id=#{userId} and status=1) isLikeByCurrentUser
-        FROM blog_topic_relation t
-                 LEFT JOIN blog b ON t.blog_id = b.id
-        WHERE t.topic_id = #{topicId} AND t.is_deleted = 0
-        ORDER BY (b.comment_count+b.like_count) DESC
-    </select>
-    <select id="getRealTimeBlogByTopicId" resultType="com.sichao.blogService.entity.vo.BlogVo">
-        SELECT b.id,b.content,b.creator_id,b.comment_count,b.like_count,b.img_one,b.img_Two,b.img_Three,b.img_Four,b.create_time,
-               (SELECT COUNT(1) FROM blog_like_user WHERE blog_id=b.id and user_id=#{userId} and status=1) isLikeByCurrentUser
-        FROM blog_topic_relation t
-                 LEFT JOIN blog b ON t.blog_id = b.id
-        WHERE t.topic_id = #{topicId} AND t.is_deleted = 0
-        ORDER BY create_time DESC
+    <!-- 查询博客vo信息 -->
+    <select id="getBlogVoInfo" resultType="com.sichao.blogService.entity.vo.BlogVo">
+        SELECT b.id,b.content,b.creator_id,b.comment_count,b.like_count,b.img_one,b.img_Two,b.img_Three,b.img_Four,b.create_time,u.nickname,u.avatar_url
+        FROM blog b LEFT JOIN USER u ON b.creator_id = u.id
+        WHERE b.id = #{blogId} AND b.is_deleted=0 AND u.is_deleted=0
     </select>
 </mapper>

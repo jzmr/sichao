@@ -29,7 +29,16 @@ public class PrefixKeyConstant {//项目名:业务名:类型:id
     public static final String BLOG_COMMENT_COUNT_MODIFY_PREFIX = "sichao:blog:commentCountModify:";//+博客id     （博客评论数变化）
     public static final String BLOG_LIKE_COUNT_MODIFY_PREFIX = "sichao:blog:likeCountModify:";//+博客id     （博客点赞数变化）
 
+    public static final String BLOG_VO_INFO_PREFIX = "sichao:blog:voInfo:";//+博客id     （博客vo信息）
+    public static final String BLOG_VO_INFO_LOCK_PREFIX = "sichao:blog:VoInfoLock:";//+博客id   （博客vo信息锁）
+    public static final String BLOG_LIKE_BY_USER_PREFIX = "sichao:blog:likeByUser:";//+用户id-博客id     （用户点赞博客信息）
+    public static final String BLOG_LIKE_BY_USER_LOCK_PREFIX = "sichao:blog:likeByUserLock:";//+用户id-博客id   （用户点赞博客信息锁）
 
+    public static final String BLOG_BY_TOPIC_LOCK_PREFIX = "sichao:blog:byTopicLock:";//+话题id   （话题下综合博客查询锁）
+    public static final String BLOG_BY_TOPIC_PREFIX = "sichao:blog:byTopic:";//+话题id     （话题下综合博客）
+
+    public static final String BLOG_REAL_TIME_BY_TOPIC_LOCK_PREFIX = "sichao:blog:realTimeByTopicLock:";//+话题id   （话题下实时博客查询锁）
+    public static final String BLOG_REAL_TIME_BY_TOPIC_PREFIX = "sichao:blog:realTimeByTopic:";//+话题id     （话题下实时博客）
 
 
 
