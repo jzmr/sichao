@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -75,14 +76,16 @@ public class BlogController {
 
     //分页查询指定话题id下的实时博客（使用redis缓存）（根据博客发布时间倒序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
     @Operation(summary = "分页查询指定话题id下的实时博客")
-    @GetMapping("/getRealTimeBlogByTopicId/{topicId}/{page}/{limit}")
-    public R getRealTimeBlogByTopicId(@PathVariable("topicId") String topicId,@PathVariable("page") int page,@PathVariable("limit") int limit){
+    @GetMapping("/getRealTimeBlogByTopicId/{topicId}/{start}/{limit}")
+    public R getRealTimeBlogByTopicId(@PathVariable("topicId") String topicId,@PathVariable("start") int start,@PathVariable("limit") int limit){
         //threadLocal中无数据时说明未登录
         HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
         String userId=null;
         if(map!=null)userId=map.get("userId");
 
-        List<BlogVo> blogList = blogService.getRealTimeBlogByTopicId(userId,topicId,page,limit);
-        return R.ok().data("blogList",blogList);
+        Map<String,Object> blogMap = blogService.getRealTimeBlogByTopicId(userId,topicId,start,limit);
+
+        if(blogMap == null)return R.ok().data("blogList",null);
+        return R.ok().data("blogList",blogMap.get("blogVoList")).data("end",blogMap.get("end"));
     }
 }

@@ -6,6 +6,7 @@ import com.sichao.blogService.entity.vo.BlogVo;
 import com.sichao.blogService.entity.vo.PublishBlogVo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -23,5 +24,5 @@ public interface BlogService extends IService<Blog> {
     //分页查询指定话题id下的博客
     List<BlogVo> getBlogByTopicId(String userId, String topicId,int page,int limit);
     //分页查询指定话题id下的实时博客
-    List<BlogVo> getRealTimeBlogByTopicId(String userId, String topicId,int page,int limit);
+    Map<String,Object> getRealTimeBlogByTopicId(String userId, String topicId, int start, int limit);
 }

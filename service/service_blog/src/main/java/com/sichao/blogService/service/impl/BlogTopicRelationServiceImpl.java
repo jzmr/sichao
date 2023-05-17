@@ -93,12 +93,8 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
 
     //查询话题下所有实时博客id
     @Override
-    public List<BlogTopicRelation> geRealTimetBlogListByTopicId(String topicId) {
-        QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
-        wrapper.eq("topic_id",topicId);
-        wrapper.select("blog_id");
-        wrapper.orderByDesc("create_time");
-        List<BlogTopicRelation> list = baseMapper.selectList(wrapper);
+    public List<BlogTopicRelation> getRealTimetBlogListByTopicId(String topicId) {
+        List<BlogTopicRelation> list = baseMapper.getRealTimetBlogListByTopicId(topicId);
         return list;
     }
 }

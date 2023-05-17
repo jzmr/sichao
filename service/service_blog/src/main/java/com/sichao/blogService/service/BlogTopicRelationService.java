@@ -26,5 +26,5 @@ public interface BlogTopicRelationService extends IService<BlogTopicRelation> {
     //查询话题下所有博客id
     List<BlogTopicRelation> getBlogListByTopicId(String topicId);
     //查询话题下所有实时博客id
-    List<BlogTopicRelation> geRealTimetBlogListByTopicId(String topicId);
+    List<BlogTopicRelation> getRealTimetBlogListByTopicId(String topicId);
 }
