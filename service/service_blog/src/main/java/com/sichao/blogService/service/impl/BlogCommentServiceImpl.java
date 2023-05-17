@@ -6,6 +6,7 @@ import com.sichao.blogService.client.UserClient;
 import com.sichao.blogService.entity.Blog;
 import com.sichao.blogService.entity.BlogComment;
 import com.sichao.blogService.entity.BlogTopic;
+import com.sichao.blogService.entity.BlogTopicRelation;
 import com.sichao.blogService.entity.vo.BlogVo;
 import com.sichao.blogService.entity.vo.CommentVo;
 import com.sichao.blogService.mapper.BlogCommentMapper;
@@ -22,10 +23,14 @@ import com.sichao.common.entity.to.UserInfoTo;
 import com.sichao.common.exceptionhandler.sichaoException;
 import com.sichao.common.mapper.MqMessageMapper;
 import com.sichao.common.utils.R;
+import com.sichao.common.utils.RandomSxpire;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
@@ -36,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,6 +59,8 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
     private UserClient userClient;
     @Autowired
     private RabbitTemplate rabbitTemplate;
+    @Autowired
+    private RedissonClient redissonClient;
     @Autowired
     private MqMessageMapper mqMessageMapper;
     @Autowired
@@ -163,35 +171,123 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
     }
 
 
-    //查询指定博客id下的评论(升序)
+    //查询指定博客id下的评论(升序)(使用redis的list数据类型缓存)
     @Override
-    public List<CommentVo> getCommentByBlogId(String userId, String blogId) {
-        //查询评论
-        List<CommentVo> CommentVoList = baseMapper.getCommentByBlogId(userId,blogId);
-        blogListHandle(CommentVoList);
-        return CommentVoList;
+    public Map<String,Object> getCommentByBlogId(String blogId,int start,int limit) {
+        ListOperations<String, String> forList = stringRedisTemplate.opsForList();//规定为右侧插入时间新的数据(旧时间(左)->新时间(右))
+        String commentListLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论查询锁key
+        String commentListKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
+
+        List<String> list=null;
+        //判断查询是否溢出
+        Long size = forList.size(commentListKey);//key不存在时，结果为0
+        if(size !=null && size > 0){
+            if(start >= size){
+                return null;//此时查询的条数超过总评论数，直接返回null
+            }else {
+                //根据从start开始从左往右查询指定的博客//如果无这个key，则这句代码查询到的会使一个空的集合
+                 list = forList.range(commentListKey, start, Math.min(start+limit-1,size-1));
+            }
+        }
+        if(list==null || list.isEmpty()){
+            RLock lock = redissonClient.getLock(commentListLockKey);
+            lock.lock();//加锁，阻塞
+            try{
+                //根据博客id升序查询评论并加入缓存
+                getCommentByBlogIdCache(blogId);
+                //查询缓存赋值给list给后面使用
+                size = forList.size(commentListKey);
+                list = forList.range(commentListKey, start, Math.min(start+limit-1,size-1));
+            }finally {
+                lock.unlock();//解锁
+            }
+        }
+
+        if(list==null)return null;
+        List<CommentVo> commentVoList=new ArrayList<>();
+        for (String jsonStr : list) {
+            commentVoList.add(JSON.parseObject(jsonStr,CommentVo.class));
+        }
+        Map<String,Object> map=new HashMap<>();
+        map.put("commentList",commentVoList);
+        map.put("end",Math.min(start+limit-1,size-1));
+        return map;
     }
 
     //查询指定博客id下的评论（倒序）
+    /**使用redis的list类型做为存放实时评论的容器，规定只能从右侧插入，左侧的是创建时间小的数据，右侧的是创建时间大的数据。
+     * start:>=0 本次要查询的评论从start位置从右往左查询     -2：说明用户第一次进入查询降序实时评论的页面   -1：说明所有评论已经查询出来了
+     * 使用start控制要查询的数据，limit控制查询的长度，
+     * 当评论创建时，从右侧插入数据，而原先在查询数据的用户不用因为新插入的数据影响评论浏览，只有在用户刷新页面时，才会从list的最右边开始查询
+     */
     @Override
-    public List<CommentVo> getCommentByBlogIdDesc(String userId, String blogId) {
-        //查询评论
-        List<CommentVo> CommentVoList = baseMapper.getCommentByBlogIdDesc(userId,blogId);
-        blogListHandle(CommentVoList);
-        return CommentVoList;
+    public Map<String,Object> getCommentByBlogIdDesc(String blogId,int start,int limit) {
+        ListOperations<String, String> forList = stringRedisTemplate.opsForList();//规定为右侧插入时间新的数据(旧时间(左)->新时间(右))
+        String commentListLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论查询锁key
+        String commentListKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
+
+        if(start==-1)return null;//所有评论已经查询出来了,直接返回null
+        List<String> list=null;
+        Long size = forList.size(commentListKey);//key不存在时，结果为0
+        if(size !=null && size >0){//key中有数据则进行处理
+            //判断查询是否溢出
+            if(start>=size)return null;//此时查询的条数超过总评论数，直接返回null
+            else if(start>=0) list = forList.range(commentListKey,Math.max(start-limit+1,0),start);//从右往左拿里limit条数据
+            else if(start==-2)list = forList.range(commentListKey, Math.max(size-limit,0),size-1);//从最右边开始往左拿limit条数据
+        }//key中无数据则查询数据库
+
+        if(list==null || list.isEmpty()){
+            RLock lock = redissonClient.getLock(commentListLockKey);
+            lock.lock();//加锁，阻塞
+            try{
+                //根据博客id升序查询评论并加入缓存
+                getCommentByBlogIdCache(blogId);
+                //查询缓存赋值给list给后面使用
+                size = forList.size(commentListKey);
+                if(size !=null && size >0){//key中有数据则进行处理
+                    //判断查询是否溢出
+                    if(start>=size)return null;//此时查询的条数超过总评论数，直接返回null
+                    else if(start>=0) list = forList.range(commentListKey,Math.max(start-limit+1,0),start);//从右往左拿里limit条数据
+                    else if(start==-2)list = forList.range(commentListKey, Math.max(size-limit,0),size-1);//从最右边开始往左拿limit条数据
+                }
+            }finally {
+                lock.unlock();//解锁
+            }
+        }
+
+        if(list==null)return null;
+        List<CommentVo> commentVoList=new ArrayList<>();
+        for(int i=list.size() - 1; i >= 0; i--){
+            commentVoList.add(JSON.parseObject(list.get(i),CommentVo.class));
+        }
+        int end=0;
+        if(start>=0) end=Math.max(start - limit + 1, 0);
+        else if(start==-2)end= (int) Math.max(size-limit,0);
+
+        Map<String,Object> map=new HashMap<>();
+        map.put("commentList",commentVoList);
+        map.put("end",end);
+        return map;
     }
 
-    //评论Vo列表处理
-    public void blogListHandle(List<CommentVo> CommentVoList){
-        for (CommentVo commentVo : CommentVoList) {
+    //根据博客id升序查询评论并加入缓存
+    public void getCommentByBlogIdCache(String blogId){
+        ListOperations<String, String> forList = stringRedisTemplate.opsForList();//规定为右侧插入时间新的数据(旧时间(左)->新时间(右))
+        String commentListKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
 
-            //微服务feign调用后，使用JSON将R转化成指定对象
-            R r = userClient.getUserById(commentVo.getCreatorId());
-            Object o = r.getData().get("userInfoTo");
-            String toJSONString = JSON.toJSONString(o);
-            UserInfoTo userInfoTo = JSON.parseObject(toJSONString, UserInfoTo.class);
-            commentVo.setNickname(userInfoTo.getNickname());
-            commentVo.setAvatarUrl(userInfoTo.getAvatarUrl());
+        //双查机制，在锁内再查一遍缓存中是否有数据
+        List<String> list = forList.range(commentListKey, 0, 0);
+        if(list==null || list.isEmpty()){//缓存不存在
+            //查询博客下所有实时评论(根据创建时间升序查询)
+            List<CommentVo> commentVoList = baseMapper.getCommentByBlogId(blogId);
+            for (CommentVo commentVo : commentVoList) {
+                //保存到redis的list中（从右侧插入时间大的数据)
+                forList.rightPush(commentListKey,JSON.toJSONString(commentVo));
+            }
+            //为key设置生存时长
+            stringRedisTemplate.expire(commentListKey,
+                    Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),
+                    TimeUnit.MILLISECONDS);
         }
     }
 

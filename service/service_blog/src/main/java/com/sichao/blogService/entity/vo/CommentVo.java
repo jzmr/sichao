@@ -24,14 +24,14 @@ public class CommentVo {
     @Schema(description = "评论内容")
     private String commentContent;
 
-    @Schema(description = "点赞数")
-    private Integer likeCount;
+//    @Schema(description = "点赞数")
+//    private Integer likeCount;
 
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 
-    @Schema(description = "当前用户是否点赞该评论，未登录则默认为点赞")
-    private boolean isLikeByCurrentUser;
+//    @Schema(description = "当前用户是否点赞该评论，未登录则默认为点赞")
+//    private boolean likeByCurrentUser;
 
 
 

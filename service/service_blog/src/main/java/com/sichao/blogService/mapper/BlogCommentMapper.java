@@ -17,8 +17,6 @@ import java.util.List;
  */
 @Mapper
 public interface BlogCommentMapper extends BaseMapper<BlogComment> {
-    //查询指定博客id下的评论(升序)
-    List<CommentVo> getCommentByBlogId(String userId, String blogId);
-    //查询指定博客id下的评论（倒序）
-    List<CommentVo> getCommentByBlogIdDesc(String userId, String blogId);
+    //查询指定博客id下的评论与其作者信息(升序)
+    List<CommentVo> getCommentByBlogId(String blogId);
 }

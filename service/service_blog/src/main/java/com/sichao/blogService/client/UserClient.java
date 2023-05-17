@@ -27,8 +27,6 @@ public interface UserClient {
     @GetMapping("/userService/user/getUserIdByNickname")
     public R getUserIdByNickname(@RequestParam("nickname") String nickname);
 
-
-
     //根据用户id查询用户信息(用于远程调用)
     @Operation(summary = "根据用户id查询用户信息(用于远程调用)")
     @GetMapping("/userService/user/getUserById")

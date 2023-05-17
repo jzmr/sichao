@@ -255,7 +255,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
 
                     for (BlogTopicRelation relation : blogIdList) {
                         String blogId = relation.getBlogId();
-                        BlogVo blogVo = getBLogVoInfo(userId,blogId);
+                        BlogVo blogVo = getBLogVoInfo(blogId);
                         if(blogVo==null)continue;
 
                         //计算分值//分值等于博客下评论数+点赞数
@@ -286,7 +286,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         if(set==null)return null;
         List<BlogVo> blogVoList=new ArrayList<>();
         for (String blogId : set) {
-            BlogVo blogVo = getBLogVoInfo(userId, blogId);
+            BlogVo blogVo = getBLogVoInfo(blogId);
 
             //博客信息可以查缓存，但是博客的评论数与点赞数要加上redis中的变化数
             String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogId);
@@ -321,12 +321,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         String blogCommentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数前缀
         String blogLikeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数前缀
 
-        System.out.println("===========start:"+start);
-
         if(start==-1)return null;//所有博客已经查询出来了,直接返回null
         List<String> list=null;
         Long size = forList.size(realTimeBlogListKey);//key不存在时，结果为0
-        System.out.println("===========size:"+size);
         if(size !=null && size >0){//key中有数据则进行处理
             //判断查询是否溢出
             if(start>=size)return null;//查询的条数超过总博客数
@@ -351,7 +348,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
                     List<BlogTopicRelation> blogIdList = blogTopicRelationService.getRealTimetBlogListByTopicId(topicId);
                     for (BlogTopicRelation relation : blogIdList) {
                         String blogId = relation.getBlogId();
-                        BlogVo blogVo = getBLogVoInfo(userId,blogId);//查询博客信息
+                        BlogVo blogVo = getBLogVoInfo(blogId);//查询博客信息
                         if(blogVo==null)continue;
 
                         //保存到redis的list中（从右侧插入时间大的数据）
@@ -361,27 +358,26 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
                     stringRedisTemplate.expire(realTimeBlogListKey,
                             Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),
                             TimeUnit.MILLISECONDS);
-                }
-
-                //查询缓存赋值给list给后面使用
-                size = forList.size(realTimeBlogListKey);//key不存在时，结果为0
-                if(size !=null && size >0){//key中有数据则进行处理
-                    //判断查询是否溢出
-                    if(start>=size)return null;//查询的条数超过总博客数
-                    else if(start>=0) list = forList.range(realTimeBlogListKey, Math.max(start - limit + 1, 0), start);//从右往左拿里limit条数据
-                    else if(start==-2)list = forList.range(realTimeBlogListKey, Math.max(size-limit,0),size-1);//从最右边开始往左拿limit条数据
+                    //查询缓存赋值给list给后面使用
+                    size = forList.size(realTimeBlogListKey);//key不存在时，结果为0
+                    if(size !=null && size >0){//key中有数据则进行处理
+                        //判断查询是否溢出
+                        if(start>=size)return null;//查询的条数超过总博客数
+                        else if(start>=0) list = forList.range(realTimeBlogListKey, Math.max(start - limit + 1, 0), start);//从右往左拿里limit条数据
+                        else if(start==-2)list = forList.range(realTimeBlogListKey, Math.max(size-limit,0),size-1);//从最右边开始往左拿limit条数据
+                    }
                 }
             }finally {
                 lock.unlock();//解锁
             }
         }
 
-        //根据保存在set中的blogId查询出BlogVo对象,并添加评论数与点赞数的变化数后保存进list中
+        //根据保存在集合中的blogId查询出BlogVo对象,并添加评论数与点赞数的变化数后保存进集合中
         if(list==null)return null;
         List<BlogVo> blogVoList=new ArrayList<>();
         for(int i=list.size() - 1; i >= 0; i--){
             String blogId = list.get(i);
-            BlogVo blogVo = getBLogVoInfo(userId, blogId);
+            BlogVo blogVo = getBLogVoInfo(blogId);
 
             //博客信息可以查缓存，但是博客的评论数与点赞数要加上redis中的变化数
             String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogId);
@@ -409,7 +405,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
     }
 
     //获取博客vo信息（使用redis的String类型缓存，只所以不会用hash类型是因为无法给hash类型的key中的单个field字段设置生存时长）
-    public BlogVo getBLogVoInfo(String userId,String blogId){
+    public BlogVo getBLogVoInfo(String blogId){
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
         String blogVoInfoKey = PrefixKeyConstant.BLOG_VO_INFO_PREFIX+blogId;//博客信息key
         String blogVoInfoLockKey = PrefixKeyConstant.BLOG_VO_INFO_LOCK_PREFIX + blogId;//博客信息锁key
