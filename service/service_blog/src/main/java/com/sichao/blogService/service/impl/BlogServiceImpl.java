@@ -32,6 +32,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -306,65 +308,65 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         return blogVoList;
     }
 
-    //查询指定话题id下的实时博客(使用redis的list数据类型缓存)(前端会根据BlogVo的id属性去除重复数据)
-    /**使用redis的list类型做为存放实时博客的容器，规定只能从右侧插入，左侧的是创建时间小的数据，右侧的是创建时间大的数据。
+    //查询指定话题id下的实时博客(使用redis的zSet数据类型缓存)(前端会根据BlogVo的id属性去除重复数据)
+    /**使用redis的zSet类型做为存放实时博客的容器，规定为以时间戳为分值插入数据
      * start:>=0 本次要查询的博客从start位置从右往左查询     -2：说明用户第一次进入查询实时博客的页面   -1：说明所有博客已经查询出来了
-     * 使用start控制要查询的数据，limit控制查询的长度，
-     * 当博客创建时，从右侧插入数据，而原先在查询数据的用户不用因为新插入的数据影响博客浏览，只有在用户刷新页面时，才会从list的最右边开始查询
+     * 使用start控制要查询的数据，limit控制查询的长度
      */
     @Override
     public Map<String,Object> getRealTimeBlogByTopicId(String userId, String topicId,int start,int limit) {
-        ListOperations<String, String> forList = stringRedisTemplate.opsForList();//规定为右侧插入时间新的数据(旧时间(左)->新时间(右))
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
-        String realTimeBlogListLockKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_LOCK_PREFIX + topicId;//话题下实时博客查询锁key
-        String realTimeBlogListKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_PREFIX + topicId;//话题下实时博客key
+        String realTimeBlogZSetLockKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_LOCK_PREFIX + topicId;//话题下实时博客查询锁key
+        String realTimeBlogZSetKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_PREFIX + topicId;//话题下实时博客key
         String blogCommentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数前缀
         String blogLikeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数前缀
 
         if(start==-1)return null;//所有博客已经查询出来了,直接返回null
-        List<String> list=null;
-        Long size = forList.size(realTimeBlogListKey);//key不存在时，结果为0
+        Set<String> set=null;
+        Long size = zSet.size(realTimeBlogZSetKey);//key不存在时，结果为0
         if(size !=null && size >0){//key中有数据则进行处理
             //判断查询是否溢出
             if(start>=size)return null;//查询的条数超过总博客数
-            else if(start>=0) list = forList.range(realTimeBlogListKey, Math.max(start - limit + 1, 0), start);//从右往左拿里limit条数据
-            else if(start==-2)list = forList.range(realTimeBlogListKey, Math.max(size-limit,0),size-1);//从最右边开始往左拿limit条数据
+            else if(start>=0) set = zSet.range(realTimeBlogZSetKey, Math.max(start - limit + 1, 0), start);//以升序查询，从右往左拿里limit条数据
+            else if(start==-2)set = zSet.range(realTimeBlogZSetKey, Math.max(size-limit,0),size-1);//以升序查询，从最右边开始往左拿limit条数据
         }//key中无数据则查询数据库
 
-        if(list==null || list.isEmpty()){
-            RLock lock = redissonClient.getLock(realTimeBlogListLockKey);
+        if(set==null || set.isEmpty()){
+            RLock lock = redissonClient.getLock(realTimeBlogZSetLockKey);
             lock.lock();//加锁，阻塞
             try{//双查机制，在锁内再查一遍缓存中是否有数据
-                size = forList.size(realTimeBlogListKey);//key不存在时，结果为0
+                size = zSet.size(realTimeBlogZSetKey);//key不存在时，结果为0
                 if(size !=null && size >0){//key中有数据则进行处理
                     //判断查询是否溢出
                     if(start>=size)return null;//查询的条数超过总博客数
-                    else if(start>=0) list = forList.range(realTimeBlogListKey, Math.max(start - limit + 1, 0), start);//从右往左拿里limit条数据
-                    else if(start==-2)list = forList.range(realTimeBlogListKey, Math.max(size-limit,0),size-1);//从最右边开始往左拿limit条数据
+                    else if(start>=0) set = zSet.range(realTimeBlogZSetKey, Math.max(start - limit + 1, 0), start);//以升序查询，从右往左拿里limit条数据
+                    else if(start==-2)set = zSet.range(realTimeBlogZSetKey, Math.max(size-limit,0),size-1);//以升序查询，从最右边开始往左拿limit条数据
                 }//key中无数据则查询数据库
 
-                if(list==null || list.isEmpty()){
+                if(set==null || set.isEmpty()){
                     //查询话题下所有实时博客(根据创建时间升序查询)
                     List<BlogTopicRelation> blogIdList = blogTopicRelationService.getRealTimetBlogListByTopicId(topicId);
                     for (BlogTopicRelation relation : blogIdList) {
                         String blogId = relation.getBlogId();
-                        BlogVo blogVo = getBLogVoInfo(blogId);//查询博客信息
-                        if(blogVo==null)continue;
+                        //转换成Unix时间戳
+                        LocalDateTime createTime = relation.getCreateTime();
+                        long timestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
 
-                        //保存到redis的list中（从右侧插入时间大的数据）
-                        forList.rightPush(realTimeBlogListKey,blogId);
+                        //保存到redis中
+                        zSet.add(realTimeBlogZSetKey,blogId,timestamp);
                     }
                     //为key设置生存时长
-                    stringRedisTemplate.expire(realTimeBlogListKey,
+                    stringRedisTemplate.expire(realTimeBlogZSetKey,
                             Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),
                             TimeUnit.MILLISECONDS);
-                    //查询缓存赋值给list给后面使用
-                    size = forList.size(realTimeBlogListKey);//key不存在时，结果为0
+                    //查询缓存赋值给set给后面使用
+                    size = zSet.size(realTimeBlogZSetKey);//key不存在时，结果为0
                     if(size !=null && size >0){//key中有数据则进行处理
                         //判断查询是否溢出
                         if(start>=size)return null;//查询的条数超过总博客数
-                        else if(start>=0) list = forList.range(realTimeBlogListKey, Math.max(start - limit + 1, 0), start);//从右往左拿里limit条数据
-                        else if(start==-2)list = forList.range(realTimeBlogListKey, Math.max(size-limit,0),size-1);//从最右边开始往左拿limit条数据
+                        else if(start>=0) set = zSet.range(realTimeBlogZSetKey, Math.max(start - limit + 1, 0), start);//以升序查询，从右往左拿里limit条数据
+                        else if(start==-2)set = zSet.range(realTimeBlogZSetKey, Math.max(size-limit,0),size-1);//以升序查询，从最右边开始往左拿limit条数据
                     }
                 }
             }finally {
@@ -373,10 +375,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         }
 
         //根据保存在集合中的blogId查询出BlogVo对象,并添加评论数与点赞数的变化数后保存进集合中
-        if(list==null)return null;
+        if(set==null)return null;
         List<BlogVo> blogVoList=new ArrayList<>();
-        for(int i=list.size() - 1; i >= 0; i--){
-            String blogId = list.get(i);
+        for (String blogId : set) {
             BlogVo blogVo = getBLogVoInfo(blogId);
 
             //博客信息可以查缓存，但是博客的评论数与点赞数要加上redis中的变化数
@@ -392,7 +393,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             boolean likeByCurrentUser = blogLikeUserService.getIsLikeBlogByUserId(userId,blogId);
             blogVo.setLikeByCurrentUser(likeByCurrentUser);
 
-            blogVoList.add(blogVo);
+            blogVoList.add(0,blogVo);//倒插
         }
         int end=0;
         if(start>=0) end=Math.max(start - limit + 1, 0);

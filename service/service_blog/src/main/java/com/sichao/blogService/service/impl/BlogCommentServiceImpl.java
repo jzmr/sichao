@@ -33,14 +33,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -171,41 +171,41 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
     }
 
 
-    //查询指定博客id下的评论(升序)(使用redis的list数据类型缓存)
+    //查询指定博客id下的评论(升序)(使用redis的zSet数据类型缓存)
     @Override
     public Map<String,Object> getCommentByBlogId(String blogId,int start,int limit) {
-        ListOperations<String, String> forList = stringRedisTemplate.opsForList();//规定为右侧插入时间新的数据(旧时间(左)->新时间(右))
-        String commentListLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论查询锁key
-        String commentListKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+        String commentZSetLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论查询锁key
+        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
 
-        List<String> list=null;
+        Set<String> set=null;
         //判断查询是否溢出
-        Long size = forList.size(commentListKey);//key不存在时，结果为0
+        Long size = zSet.size(commentZSetKey);//key不存在时，结果为0
         if(size !=null && size > 0){
             if(start >= size){
                 return null;//此时查询的条数超过总评论数，直接返回null
             }else {
-                //根据从start开始从左往右查询指定的博客//如果无这个key，则这句代码查询到的会使一个空的集合
-                 list = forList.range(commentListKey, start, Math.min(start+limit-1,size-1));
+                //以升序查询，根据从start开始从左往右查询指定的博客//如果无这个key，则这句代码查询到的会使一个空的集合
+                set = zSet.range(commentZSetKey, start, Math.min(start+limit-1,size-1));
             }
         }
-        if(list==null || list.isEmpty()){
-            RLock lock = redissonClient.getLock(commentListLockKey);
+        if(set==null || set.isEmpty()){
+            RLock lock = redissonClient.getLock(commentZSetLockKey);
             lock.lock();//加锁，阻塞
             try{
                 //根据博客id升序查询评论并加入缓存
                 getCommentByBlogIdCache(blogId);
-                //查询缓存赋值给list给后面使用
-                size = forList.size(commentListKey);
-                list = forList.range(commentListKey, start, Math.min(start+limit-1,size-1));
+                //查询缓存赋值给set给后面使用
+                size = zSet.size(commentZSetKey);
+                set = zSet.range(commentZSetKey, start, Math.min(start+limit-1,size-1));
             }finally {
                 lock.unlock();//解锁
             }
         }
 
-        if(list==null)return null;
+        if(set==null)return null;
         List<CommentVo> commentVoList=new ArrayList<>();
-        for (String jsonStr : list) {
+        for (String jsonStr : set) {
             commentVoList.add(JSON.parseObject(jsonStr,CommentVo.class));
         }
         Map<String,Object> map=new HashMap<>();
@@ -215,50 +215,49 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
     }
 
     //查询指定博客id下的评论（倒序）
-    /**使用redis的list类型做为存放实时评论的容器，规定只能从右侧插入，左侧的是创建时间小的数据，右侧的是创建时间大的数据。
+    /**使用redis的zSet类型做为存放实时评论的容器，规定为以时间戳为分值插入数据
      * start:>=0 本次要查询的评论从start位置从右往左查询     -2：说明用户第一次进入查询降序实时评论的页面   -1：说明所有评论已经查询出来了
-     * 使用start控制要查询的数据，limit控制查询的长度，
-     * 当评论创建时，从右侧插入数据，而原先在查询数据的用户不用因为新插入的数据影响评论浏览，只有在用户刷新页面时，才会从list的最右边开始查询
+     * 使用start控制要查询的数据，limit控制查询的长度
      */
     @Override
     public Map<String,Object> getCommentByBlogIdDesc(String blogId,int start,int limit) {
-        ListOperations<String, String> forList = stringRedisTemplate.opsForList();//规定为右侧插入时间新的数据(旧时间(左)->新时间(右))
-        String commentListLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论查询锁key
-        String commentListKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+        String commentZSetLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论查询锁key
+        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
 
         if(start==-1)return null;//所有评论已经查询出来了,直接返回null
-        List<String> list=null;
-        Long size = forList.size(commentListKey);//key不存在时，结果为0
+        Set<String> set=null;
+        Long size = zSet.size(commentZSetKey);//key不存在时，结果为0
         if(size !=null && size >0){//key中有数据则进行处理
             //判断查询是否溢出
             if(start>=size)return null;//此时查询的条数超过总评论数，直接返回null
-            else if(start>=0) list = forList.range(commentListKey,Math.max(start-limit+1,0),start);//从右往左拿里limit条数据
-            else if(start==-2)list = forList.range(commentListKey, Math.max(size-limit,0),size-1);//从最右边开始往左拿limit条数据
+            else if(start>=0) set = zSet.range(commentZSetKey,Math.max(start-limit+1,0),start);//以升序查询，从右往左拿里limit条数据
+            else if(start==-2)set = zSet.range(commentZSetKey, Math.max(size-limit,0),size-1);//以升序查询，从最右边开始往左拿limit条数据
         }//key中无数据则查询数据库
 
-        if(list==null || list.isEmpty()){
-            RLock lock = redissonClient.getLock(commentListLockKey);
+        if(set==null || set.isEmpty()){
+            RLock lock = redissonClient.getLock(commentZSetLockKey);
             lock.lock();//加锁，阻塞
             try{
                 //根据博客id升序查询评论并加入缓存
                 getCommentByBlogIdCache(blogId);
-                //查询缓存赋值给list给后面使用
-                size = forList.size(commentListKey);
+                //查询缓存赋值给set给后面使用
+                size = zSet.size(commentZSetKey);
                 if(size !=null && size >0){//key中有数据则进行处理
                     //判断查询是否溢出
                     if(start>=size)return null;//此时查询的条数超过总评论数，直接返回null
-                    else if(start>=0) list = forList.range(commentListKey,Math.max(start-limit+1,0),start);//从右往左拿里limit条数据
-                    else if(start==-2)list = forList.range(commentListKey, Math.max(size-limit,0),size-1);//从最右边开始往左拿limit条数据
+                    else if(start>=0) set = zSet.range(commentZSetKey,Math.max(start-limit+1,0),start);//以升序查询，从右往左拿里limit条数据
+                    else if(start==-2)set = zSet.range(commentZSetKey, Math.max(size-limit,0),size-1);//以升序查询，从最右边开始往左拿limit条数据
                 }
             }finally {
                 lock.unlock();//解锁
             }
         }
 
-        if(list==null)return null;
+        if(set==null)return null;
         List<CommentVo> commentVoList=new ArrayList<>();
-        for(int i=list.size() - 1; i >= 0; i--){
-            commentVoList.add(JSON.parseObject(list.get(i),CommentVo.class));
+        for (String jsonStr : set) {
+            commentVoList.add(0,JSON.parseObject(jsonStr,CommentVo.class));//倒插
         }
         int end=0;
         if(start>=0) end=Math.max(start - limit + 1, 0);
@@ -272,20 +271,24 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
 
     //根据博客id升序查询评论并加入缓存
     public void getCommentByBlogIdCache(String blogId){
-        ListOperations<String, String> forList = stringRedisTemplate.opsForList();//规定为右侧插入时间新的数据(旧时间(左)->新时间(右))
-        String commentListKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
 
         //双查机制，在锁内再查一遍缓存中是否有数据
-        List<String> list = forList.range(commentListKey, 0, 0);
-        if(list==null || list.isEmpty()){//缓存不存在
+        Set<String> set = zSet.range(commentZSetKey, 0, 0);
+        if(set==null || set.isEmpty()){//缓存不存在
             //查询博客下所有实时评论(根据创建时间升序查询)
             List<CommentVo> commentVoList = baseMapper.getCommentByBlogId(blogId);
             for (CommentVo commentVo : commentVoList) {
-                //保存到redis的list中（从右侧插入时间大的数据)
-                forList.rightPush(commentListKey,JSON.toJSONString(commentVo));
+                //转换成Unix时间戳
+                LocalDateTime createTime = commentVo.getCreateTime();
+                long timestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+
+                //保存到redis中
+                zSet.add(commentZSetKey,JSON.toJSONString(commentVo),timestamp);
             }
             //为key设置生存时长
-            stringRedisTemplate.expire(commentListKey,
+            stringRedisTemplate.expire(commentZSetKey,
                     Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),
                     TimeUnit.MILLISECONDS);
         }

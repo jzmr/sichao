@@ -3,7 +3,7 @@
 <mapper namespace="com.sichao.blogService.mapper.BlogTopicRelationMapper">
     <!-- 查询话题下所有实时博客id -->
     <select id="getRealTimetBlogListByTopicId" resultType="com.sichao.blogService.entity.BlogTopicRelation">
-        SELECT bt.blog_id FROM blog_topic_relation bt
+        SELECT bt.blog_id,b.create_time FROM blog_topic_relation bt
         LEFT JOIN blog b ON bt.blog_id = b.id
         WHERE bt.topic_id=#{topicId} AND bt.is_deleted=0 AND b.is_deleted=0
         ORDER BY b.create_time
