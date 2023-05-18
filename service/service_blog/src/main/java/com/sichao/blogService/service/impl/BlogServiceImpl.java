@@ -171,6 +171,10 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             Map<String,Object> topicMap = new HashMap<>();
             topicMap.put("blogId",blogId);
             topicMap.put("topicIdList",topicIdList);
+            //带上博客的创建时间戳，用于之后保存进redis的话题下博客的key中
+            LocalDateTime createTime = blog.getCreateTime();
+            long createTimestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();//转换成Unix时间戳
+            topicMap.put("createTimestamp",createTimestamp);
             //发送消息前先记录数据
             String topicMapJson = JSON.toJSONString(topicMap);
             MqMessage topicMqMessage = new MqMessage(topicMapJson,RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_BINDING_TOPIC_ROUTINGKEY,
@@ -244,6 +248,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             return null;//此时查询的条数超过总博客数，直接返回null
         }
 
+        //TODO 更新逻辑不好，热度实时计算逻辑也不好
         //根据分值降序分页查询指定的博客//如果无这个key，则这句代码查询到的会使一个空的set集合
         Set<String> set = zSet.reverseRange(blogZSetKey, (long) (page - 1) *limit, (long) page *limit-1);
         if(set==null || set.isEmpty()){
@@ -358,7 +363,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
                     }
                     //为key设置生存时长
                     stringRedisTemplate.expire(realTimeBlogZSetKey,
-                            Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),
+                            Constant.THIRTY_DAYS_EXPIRE + RandomSxpire.getRandomSxpire(),//30天
                             TimeUnit.MILLISECONDS);
                     //查询缓存赋值给set给后面使用
                     size = zSet.size(realTimeBlogZSetKey);//key不存在时，结果为0

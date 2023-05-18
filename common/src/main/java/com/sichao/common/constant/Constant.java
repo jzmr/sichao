@@ -38,6 +38,7 @@ public class Constant {
 
     public static final long ONE_HOURS_EXPIRE = 1000*60*60;//单位毫秒，1小时
     public static final long FIVE_MINUTES_EXPIRE = 1000*60*5;//单位毫秒，5分钟
+    public static final long THIRTY_DAYS_EXPIRE = 1000L*60*60*24*30;//单位毫秒，30天
 
     //@用户 超链接拼接常量
     //<a href="/user/1231243512351431234" style="color:orange;">@aaa</a>

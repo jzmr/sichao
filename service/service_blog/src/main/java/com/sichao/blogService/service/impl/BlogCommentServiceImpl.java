@@ -152,7 +152,22 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         for (String topicId : topicIdList) {
             ops.increment(PrefixKeyConstant.BLOG_TOPIC_DISCUSSION_MODIFY_PREFIX+topicId);//自增
         }
-
+        //将评论以创建时间的时间戳插入博客下评论key中
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
+        Long size = zSet.size(commentZSetKey);
+        if(size!=null && size>0){
+            LocalDateTime createTime = blogComment.getCreateTime();
+            long createTimestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();//转换成Unix时间戳
+            CommentVo commentVo = new CommentVo();
+            BeanUtils.copyProperties(blogComment,commentVo);
+            R r = (R) userClient.getUserById(curUserId);//远程调用查询用户id
+            String jsonString = JSON.toJSONString(r.getData().get("userInfoTo"));//JSON转换避免LinkedHashMap不能直接强转为对象的问题
+            UserInfoTo userInfoTo = JSON.parseObject(jsonString, UserInfoTo.class);
+            commentVo.setNickname(userInfoTo.getNickname());
+            commentVo.setAvatarUrl(userInfoTo.getAvatarUrl());
+            zSet.add(commentZSetKey,JSON.toJSONString(commentVo),createTimestamp);
+        }
     }
 
     //删除评论、博客评论数-1
@@ -166,6 +181,22 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         //删除评论
         baseMapper.deleteById(commentId);
 
+        //删除该评论在所属博客下评论key中的数据
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogComment.getBlogId();//博客下评论key
+        Long size = zSet.size(commentZSetKey);
+        if(size!=null && size>0){//key存在
+            CommentVo commentVo = new CommentVo();
+            BeanUtils.copyProperties(blogComment,commentVo);
+            R r = (R) userClient.getUserById(userId);//远程调用查询用户id
+            String jsonString = JSON.toJSONString(r.getData().get("userInfoTo"));//JSON转换避免LinkedHashMap不能直接强转为对象的问题
+            UserInfoTo userInfoTo = JSON.parseObject(jsonString, UserInfoTo.class);
+            commentVo.setNickname(userInfoTo.getNickname());
+            commentVo.setAvatarUrl(userInfoTo.getAvatarUrl());
+            zSet.remove(commentZSetKey,JSON.toJSONString(commentVo));//移除评论
+        }
+
+        //博客评论数-1
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
         ops.decrement(PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX+blogComment.getBlogId());
     }
@@ -289,7 +320,7 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
             }
             //为key设置生存时长
             stringRedisTemplate.expire(commentZSetKey,
-                    Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),
+                    Constant.THIRTY_DAYS_EXPIRE + RandomSxpire.getRandomSxpire(),//30天
                     TimeUnit.MILLISECONDS);
         }
     }

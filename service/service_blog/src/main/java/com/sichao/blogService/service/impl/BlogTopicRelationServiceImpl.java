@@ -9,9 +9,12 @@ import com.sichao.common.constant.PrefixKeyConstant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +36,7 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
     //批量绑定某个博客与多个话题之间的关系（此方法用来被rabbitMQ的消费者调用）
     @Transactional
     @Override
-    public void blogBindingTopicBatch(String blogId, List<String> topicIdList) {
+    public void blogBindingTopicBatch(String blogId, List<String> topicIdList,long createTimestamp) {
         //数据的正确性在发送消息之前就已经验证过了，所以这里不用验证数据是否正确
         QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
         BlogTopicRelation blogTopicRelation=null;
@@ -55,6 +58,13 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
             //话题总讨论数+1
             ops.increment(topicDiscussionModifyKey);//自增，如果key不存在，则先创建整个key且值为0，而后再自增
 
+            //将博客id放入话题下实时博客key
+            ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+            String realTimeBlogZSetKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_PREFIX + topicId;//话题下实时博客key
+            Long size = zSet.size(realTimeBlogZSetKey);//查看key的长度，key不存在时为0（key不存在时查看key的长度不会创建该key，即长度为0时该key不存在）
+            if(size!=null && size>0){//key存在
+                zSet.add(realTimeBlogZSetKey,blogId,createTimestamp);//将博客id放入话题下实时博客key
+            }
         }
     }
 
@@ -78,6 +88,18 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
     public void deleteRelationBatchByBlogId(String blogId) {
         QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
         wrapper.eq("blog_id",blogId);
+        wrapper.select("topic_id");
+        //查询出所有博客与话题关系，删除该博客在所有相关话题下的实时博客key中的数据
+        List<BlogTopicRelation> list = baseMapper.selectList(wrapper);
+        for (BlogTopicRelation blogTopicRelation : list) {
+            ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();
+            String realTimeBlogZSetKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_PREFIX + blogTopicRelation.getTopicId();//话题下实时博客key
+            Long size = zSet.size(realTimeBlogZSetKey);//查看key的长度，key不存在时为0（key不存在时查看key的长度不会创建该key，即长度为0时该key不存在）
+            if(size!=null && size>0){//key存在
+                zSet.remove(realTimeBlogZSetKey,blogId);//移除博客id
+            }
+        }
+        //删除所有博客与话题关系
         baseMapper.delete(wrapper);
     }
 

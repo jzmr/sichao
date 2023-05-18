@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +50,8 @@ public class BlogRabbitMQListener {
 
         String blogId = (String) map.get("blogId");
         List<String> topicIdList = (List<String>) map.get("topicIdList");
-        blogTopicRelationService.blogBindingTopicBatch(blogId, topicIdList);
+        long createTimestamp = (long) map.get("createTimestamp");
+        blogTopicRelationService.blogBindingTopicBatch(blogId, topicIdList,createTimestamp);
 
         //能执行到这里了说明消息已经被消费，将消费信息持久化到MQ消息表
         //获取携带的数据标识
@@ -126,6 +128,11 @@ public class BlogRabbitMQListener {
         stringRedisTemplate.delete(blogCommentCountModifyKey);
         stringRedisTemplate.delete(blogLikeCountModifyKey);
         //话题总讨论数是不会因为博客或评论删除而减少的，它体现了该话题现在或曾经的讨论数，不会因为删博删评而减少。
+        //删除缓存中博客信息
+        stringRedisTemplate.delete(PrefixKeyConstant.BLOG_VO_INFO_PREFIX+blogId);//博客信息key
+        //删除缓存中博客下评论集合key
+        stringRedisTemplate.delete(PrefixKeyConstant.BLOG_COMMENT_PREFIX+blogId);//博客下评论key
+
     }
 
 }

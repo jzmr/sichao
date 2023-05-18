@@ -3,6 +3,7 @@ package com.sichao.blogService.service;
 import com.sichao.blogService.entity.BlogTopicRelation;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -16,7 +17,7 @@ import java.util.List;
 public interface BlogTopicRelationService extends IService<BlogTopicRelation> {
 
     //批量绑定某个博客与多个话题之间的关系（此方法用来被rabbitMQ的消费者调用）
-    void blogBindingTopicBatch(String blogId,List<String> topicIdList);
+    void blogBindingTopicBatch(String blogId, List<String> topicIdList, long createTimestamp);
 
     //根据博客id查询话题id
     List<String> getTopicIdByBlogId(String blogId);
