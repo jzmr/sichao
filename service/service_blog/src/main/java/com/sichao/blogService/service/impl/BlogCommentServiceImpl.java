@@ -30,10 +30,7 @@ import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.ListOperations;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
-import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -159,14 +156,7 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         if(size!=null && size>0){
             LocalDateTime createTime = blogComment.getCreateTime();
             long createTimestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();//转换成Unix时间戳
-            CommentVo commentVo = new CommentVo();
-            BeanUtils.copyProperties(blogComment,commentVo);
-            R r = (R) userClient.getUserById(curUserId);//远程调用查询用户id
-            String jsonString = JSON.toJSONString(r.getData().get("userInfoTo"));//JSON转换避免LinkedHashMap不能直接强转为对象的问题
-            UserInfoTo userInfoTo = JSON.parseObject(jsonString, UserInfoTo.class);
-            commentVo.setNickname(userInfoTo.getNickname());
-            commentVo.setAvatarUrl(userInfoTo.getAvatarUrl());
-            zSet.add(commentZSetKey,JSON.toJSONString(commentVo),createTimestamp);
+            zSet.add(commentZSetKey,blogComment.getId(),createTimestamp);//将评论id保存进博客下评论key中
         }
     }
 
@@ -181,20 +171,13 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         //删除评论
         baseMapper.deleteById(commentId);
 
-        //删除该评论在所属博客下评论key中的数据
+        //删除该评论在所属博客下评论key中的缓存数据
         ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
         String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogComment.getBlogId();//博客下评论key
-        Long size = zSet.size(commentZSetKey);
-        if(size!=null && size>0){//key存在
-            CommentVo commentVo = new CommentVo();
-            BeanUtils.copyProperties(blogComment,commentVo);
-            R r = (R) userClient.getUserById(userId);//远程调用查询用户id
-            String jsonString = JSON.toJSONString(r.getData().get("userInfoTo"));//JSON转换避免LinkedHashMap不能直接强转为对象的问题
-            UserInfoTo userInfoTo = JSON.parseObject(jsonString, UserInfoTo.class);
-            commentVo.setNickname(userInfoTo.getNickname());
-            commentVo.setAvatarUrl(userInfoTo.getAvatarUrl());
-            zSet.remove(commentZSetKey,JSON.toJSONString(commentVo));//移除评论
-        }
+        zSet.remove(commentZSetKey,commentId);//移除评论id
+        //删除缓存评论信息key
+        String commentVoInfoKey = PrefixKeyConstant.BLOG_COMMENT_VO_INFO_PREFIX+commentId;//评论vo信息key
+        stringRedisTemplate.delete(commentVoInfoKey);
 
         //博客评论数-1
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
@@ -206,8 +189,8 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
     @Override
     public Map<String,Object> getCommentByBlogId(String blogId,int start,int limit) {
         ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
-        String commentZSetLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论查询锁key
-        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
+        String commentZSetLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论id查询锁key
+        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论id的key
 
         Set<String> set=null;
         //判断查询是否溢出
@@ -236,8 +219,9 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
 
         if(set==null)return null;
         List<CommentVo> commentVoList=new ArrayList<>();
-        for (String jsonStr : set) {
-            commentVoList.add(JSON.parseObject(jsonStr,CommentVo.class));
+        for (String commentId : set) {
+            CommentVo commentVo = getCommentVoInfo(commentId);
+            commentVoList.add(commentVo);
         }
         Map<String,Object> map=new HashMap<>();
         map.put("commentList",commentVoList);
@@ -253,8 +237,8 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
     @Override
     public Map<String,Object> getCommentByBlogIdDesc(String blogId,int start,int limit) {
         ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
-        String commentZSetLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论查询锁key
-        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
+        String commentZSetLockKey = PrefixKeyConstant.BLOG_COMMENT_LOCK_PREFIX + blogId;//博客下评论id查询锁key
+        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论id的key
 
         if(start==-1)return null;//所有评论已经查询出来了,直接返回null
         Set<String> set=null;
@@ -287,8 +271,9 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
 
         if(set==null)return null;
         List<CommentVo> commentVoList=new ArrayList<>();
-        for (String jsonStr : set) {
-            commentVoList.add(0,JSON.parseObject(jsonStr,CommentVo.class));//倒插
+        for (String commentId : set) {
+            CommentVo commentVo = getCommentVoInfo(commentId);
+            commentVoList.add(0,commentVo);//倒插
         }
         int end=0;
         if(start>=0) end=Math.max(start - limit + 1, 0);
@@ -303,7 +288,7 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
     //根据博客id升序查询评论并加入缓存
     public void getCommentByBlogIdCache(String blogId){
         ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
-        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论key
+        String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogId;//博客下评论id的key
 
         //双查机制，在锁内再查一遍缓存中是否有数据
         Set<String> set = zSet.range(commentZSetKey, 0, 0);
@@ -315,14 +300,42 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
                 LocalDateTime createTime = commentVo.getCreateTime();
                 long timestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
 
-                //保存到redis中
-                zSet.add(commentZSetKey,JSON.toJSONString(commentVo),timestamp);
+                //将评论id保存到redis中的zSet类型中，使用时间戳自动排序
+                zSet.add(commentZSetKey,commentVo.getId(),timestamp);
             }
-            //为key设置生存时长
+            //为zSet的key设置生存时长
             stringRedisTemplate.expire(commentZSetKey,
                     Constant.THIRTY_DAYS_EXPIRE + RandomSxpire.getRandomSxpire(),//30天
                     TimeUnit.MILLISECONDS);
         }
+    }
+    //获取评论vo信息（使用redis的String类型缓存，只所以不会用hash类型是因为无法给hash类型的key中的单个field字段设置生存时长）
+    public CommentVo getCommentVoInfo(String commentId){
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+        String commentVoInfoKey = PrefixKeyConstant.BLOG_COMMENT_VO_INFO_PREFIX+commentId;//评论vo信息key
+        String commentVoInfoLockKey = PrefixKeyConstant.BLOG_COMMENT_VO_INFO_LOCK_PREFIX + commentId;//评论vo信息锁key
+
+        CommentVo commentVo = JSON.parseObject(ops.get(commentVoInfoKey), CommentVo.class);
+        if(commentVo==null) {
+            RLock lock = redissonClient.getLock(commentVoInfoLockKey);
+            lock.lock();//加锁，阻塞
+            try {//双查机制，在锁内再查一遍缓存中是否有数据
+                commentVo = JSON.parseObject(ops.get(commentVoInfoKey), CommentVo.class);
+                if (commentVo == null) {
+                    //根据评论id查询评论vo信息
+                    commentVo = baseMapper.getCommentVoInfo(commentId);
+                    if(commentVo == null)return null;
+
+                    //保存到redis中，并设置生存时长
+                    ops.set(commentVoInfoKey,JSON.toJSONString(commentVo),
+                            Constant.ONE_HOURS_EXPIRE + RandomSxpire.getRandomSxpire(),TimeUnit.MILLISECONDS);//1小时
+                }
+            } finally {
+                lock.unlock();//解锁
+            }
+        }
+
+        return commentVo;
     }
 
     //删除评论(批量)
@@ -332,5 +345,6 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         QueryWrapper<BlogComment> wrapper = new QueryWrapper<>();
         wrapper.eq("blog_id",blogId);
         baseMapper.delete(wrapper);
+        //缓存中的评论信息这里就不取删除了，等待评论信息的生存时长过期就会自动删除
     }
 }

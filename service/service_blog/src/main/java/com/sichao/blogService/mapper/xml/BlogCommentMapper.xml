@@ -9,4 +9,10 @@
         WHERE bc.blog_id=#{blogId} AND bc.is_deleted = 0 AND  u.is_deleted = 0
         ORDER BY bc.create_time
     </select>
+    <!-- 根据评论id查询评论vo信息-->
+    <select id="getCommentVoInfo" resultType="com.sichao.blogService.entity.vo.CommentVo">
+        SELECT bc.id,bc.blog_id,bc.creator_id,bc.comment_content,bc.create_time,u.nickname,u.avatar_url
+        FROM blog_comment bc LEFT JOIN user u ON bc.creator_id=u.id
+        WHERE bc.id=#{commentId} AND bc.is_deleted = 0 AND  u.is_deleted = 0
+    </select>
 </mapper>

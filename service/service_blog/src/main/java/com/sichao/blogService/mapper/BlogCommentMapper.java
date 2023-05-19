@@ -19,4 +19,6 @@ import java.util.List;
 public interface BlogCommentMapper extends BaseMapper<BlogComment> {
     //查询指定博客id下的评论与其作者信息(升序)
     List<CommentVo> getCommentByBlogId(String blogId);
+    //根据评论id查询评论vo信息
+    CommentVo getCommentVoInfo(String commentId);
 }

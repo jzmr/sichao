@@ -37,11 +37,13 @@ public class PrefixKeyConstant {//项目名:业务名:类型:id
     public static final String BLOG_BY_TOPIC_LOCK_PREFIX = "sichao:blog:byTopicLock:";//+话题id   （话题下综合博客查询锁）
     public static final String BLOG_BY_TOPIC_PREFIX = "sichao:blog:byTopic:";//+话题id     （话题下综合博客）
 
-    public static final String BLOG_REAL_TIME_BY_TOPIC_LOCK_PREFIX = "sichao:blog:realTimeByTopicLock:";//+话题id   （话题下实时博客查询锁）
-    public static final String BLOG_REAL_TIME_BY_TOPIC_PREFIX = "sichao:blog:realTimeByTopic:";//+话题id     （话题下实时博客）
+    public static final String BLOG_REAL_TIME_BY_TOPIC_LOCK_PREFIX = "sichao:blog:realTimeByTopicLock:";//+话题id   （话题下实时博客id查询锁）
+    public static final String BLOG_REAL_TIME_BY_TOPIC_PREFIX = "sichao:blog:realTimeByTopic:";//+话题id     （话题下实时博客id）
 
-    public static final String BLOG_COMMENT_LOCK_PREFIX = "sichao:blog:commentLock:";//+博客id   （博客下评论查询锁）
-    public static final String BLOG_COMMENT_PREFIX = "sichao:blog:comment:";//+博客id     （博客下评论）
+    public static final String BLOG_COMMENT_LOCK_PREFIX = "sichao:blog:commentLock:";//+博客id   （博客下评论id查询锁）
+    public static final String BLOG_COMMENT_PREFIX = "sichao:blog:comment:";//+博客id     （博客下评论id）
+    public static final String BLOG_COMMENT_VO_INFO_PREFIX = "sichao:blog:commentVoInfo:";//+评论id     （评论vo信息）
+    public static final String BLOG_COMMENT_VO_INFO_LOCK_PREFIX = "sichao:blog:commentVoInfoLock:";//+评论id   （评论vo信息锁）
 
 
 

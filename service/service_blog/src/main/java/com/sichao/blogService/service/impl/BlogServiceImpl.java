@@ -237,8 +237,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
     public List<BlogVo> getBlogByTopicId(String userId, String topicId,int page,int limit) {
         ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
-        String blogZSetLockKey = PrefixKeyConstant.BLOG_BY_TOPIC_LOCK_PREFIX + topicId;//话题下综合博客列表锁key
-        String blogZSetKey = PrefixKeyConstant.BLOG_BY_TOPIC_PREFIX + topicId;//话题下综合博客列表key
+        String blogZSetLockKey = PrefixKeyConstant.BLOG_BY_TOPIC_LOCK_PREFIX + topicId;//话题下综合博客id列表锁key
+        String blogZSetKey = PrefixKeyConstant.BLOG_BY_TOPIC_PREFIX + topicId;//话题下综合博客id列表key
         String blogCommentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数前缀
         String blogLikeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数前缀
 
@@ -322,8 +322,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
     public Map<String,Object> getRealTimeBlogByTopicId(String userId, String topicId,int start,int limit) {
         ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
-        String realTimeBlogZSetLockKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_LOCK_PREFIX + topicId;//话题下实时博客查询锁key
-        String realTimeBlogZSetKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_PREFIX + topicId;//话题下实时博客key
+        String realTimeBlogZSetLockKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_LOCK_PREFIX + topicId;//话题下实时博客id查询锁key
+        String realTimeBlogZSetKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_PREFIX + topicId;//话题下实时博客id的key
         String blogCommentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数前缀
         String blogLikeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数前缀
 
