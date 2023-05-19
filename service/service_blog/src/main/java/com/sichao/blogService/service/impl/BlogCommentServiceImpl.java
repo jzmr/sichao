@@ -326,7 +326,7 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
                     TimeUnit.MILLISECONDS);
         }
     }
-    //获取评论vo信息（使用redis的String类型缓存，只所以不会用hash类型是因为无法给hash类型的key中的单个field字段设置生存时长）
+    //获取评论vo信息（使用redis的String类型缓存）
     public CommentVo getCommentVoInfo(String commentId){
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
         String commentVoInfoKey = PrefixKeyConstant.BLOG_COMMENT_VO_INFO_PREFIX+commentId;//评论vo信息key
@@ -341,11 +341,15 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
                 if (commentVo == null) {
                     //根据评论id查询评论vo信息
                     commentVo = baseMapper.getCommentVoInfo(commentId);
-                    if(commentVo == null)return null;
-
-                    //保存到redis中，并设置生存时长
-                    ops.set(commentVoInfoKey,JSON.toJSONString(commentVo),
-                            Constant.ONE_HOURS_EXPIRE + RandomSxpire.getRandomSxpire(),TimeUnit.MILLISECONDS);//1小时
+                    if(commentVo == null){
+                        //如果查询的数据为空，则向缓存中写入空串，并设置5分钟（短期）的过期时间（避免缓存穿透）
+                        ops.set(commentVoInfoKey,"",
+                                Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),TimeUnit.MILLISECONDS);//5分钟
+                    }else {
+                        //保存到redis中，并设置生存时长
+                        ops.set(commentVoInfoKey,JSON.toJSONString(commentVo),
+                                Constant.ONE_HOURS_EXPIRE + RandomSxpire.getRandomSxpire(),TimeUnit.MILLISECONDS);//1小时
+                    }
                 }
             } finally {
                 lock.unlock();//解锁

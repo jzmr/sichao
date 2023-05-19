@@ -2,6 +2,7 @@ package com.sichao.blogService.service.impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.sichao.blogService.client.UserClient;
 import com.sichao.blogService.entity.BlogTopic;
 import com.sichao.blogService.entity.vo.PublishTopicVo;
 import com.sichao.blogService.entity.vo.TopicInfoVo;
@@ -11,7 +12,10 @@ import com.sichao.blogService.service.BlogTopicService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
+import com.sichao.common.entity.to.UserInfoTo;
 import com.sichao.common.exceptionhandler.sichaoException;
+import com.sichao.common.utils.R;
+import io.swagger.v3.core.util.Json;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -38,6 +42,8 @@ import java.util.Set;
 public class BlogTopicServiceImpl extends ServiceImpl<BlogTopicMapper, BlogTopic> implements BlogTopicService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private UserClient userClient;
 
 
     //发布话题
@@ -99,6 +105,12 @@ public class BlogTopicServiceImpl extends ServiceImpl<BlogTopicMapper, BlogTopic
         if(blogTopic==null || blogTopic.getStatus()==0)throw new sichaoException(Constant.FAILURE_CODE,"该话题已被禁用");
         TopicInfoVo topicInfo = new TopicInfoVo();
         BeanUtils.copyProperties(blogTopic, topicInfo);
+        //根据用户id获取用户信息(昵称、头像)
+        R r = userClient.getUserById(blogTopic.getCreatorId());
+        String jsonString = JSON.toJSONString(r.getData().get("userInfoTo"));
+        UserInfoTo userInfoTo = JSON.parseObject(jsonString, UserInfoTo.class);
+        topicInfo.setCreatorNickname(userInfoTo.getNickname());
+        topicInfo.setCreatorAvatarUrl(userInfoTo.getAvatarUrl());
         return topicInfo;
     }
     //禁用话题

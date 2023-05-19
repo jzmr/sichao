@@ -236,6 +236,7 @@ public class BlogServiceCronTask {
     public void blogCountModifyToDisk() {
         log.info("blogCountModifyToDisk定时任务开始");
         String cronTaskLock = PrefixKeyConstant.BLOG_CRON_TASK_LOCK_PREFIX + "blogCountModifyToDisk";//定时任务锁
+        String blogVoInfoPrefix = PrefixKeyConstant.BLOG_VO_INFO_PREFIX;//博客信息前缀
         String commentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数变化数前缀
         String blogLokeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数变化数前缀
 
@@ -272,6 +273,8 @@ public class BlogServiceCronTask {
                             if(blog == null)continue;//无数据说明跳过
                             blog.setCommentCount((int) (blog.getCommentCount()+modifyCount));
                             blogService.updateById(blog);
+                            //删除博客信息缓存
+                            stringRedisTemplate.delete(blogVoInfoPrefix + blogId);
                         } catch (Exception e) {
                             taskInfo.setExceptionInfo("处理博客\"" + key.substring(key.lastIndexOf(':') + 1) + "\"评论数变化数时出现异常");
                             throw new sichaoException(Constant.FAILURE_CODE,
@@ -300,6 +303,8 @@ public class BlogServiceCronTask {
                             if(blog == null)continue;//无数据说明跳过
                             blog.setLikeCount((int) (blog.getLikeCount()+modifyCount));
                             blogService.updateById(blog);
+                            //删除博客信息缓存
+                            stringRedisTemplate.delete(blogVoInfoPrefix + blogId);
                         } catch (Exception e) {
                             taskInfo.setExceptionInfo("处理博客\"" + key.substring(key.lastIndexOf(':') + 1) + "\"点赞数变化数时出现异常");
                             throw new sichaoException(Constant.FAILURE_CODE,

@@ -66,8 +66,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
     @Autowired
     private BlogTopicRelationService blogTopicRelationService;
 
-
-
     //发布博客
     @Transactional
     @Override
@@ -428,7 +426,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         return map;
     }
 
-    //获取博客vo信息（使用redis的String类型缓存，只所以不会用hash类型是因为无法给hash类型的key中的单个field字段设置生存时长）
+    //获取博客vo信息（使用redis的String类型缓存）
     public BlogVo getBLogVoInfo(String blogId){
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
         String blogVoInfoKey = PrefixKeyConstant.BLOG_VO_INFO_PREFIX+blogId;//博客信息key
@@ -443,16 +441,21 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
                 if (blogVo == null) {
                     //查询博客vo信息
                     blogVo = baseMapper.getBlogVoInfo(blogId);
-                    if(blogVo == null)return null;
-                    List<String> imgList = new ArrayList<>();
-                    if (blogVo.getImgOne() != null) imgList.add(blogVo.getImgOne());
-                    if (blogVo.getImgTwo() != null) imgList.add(blogVo.getImgTwo());
-                    if (blogVo.getImgThree() != null) imgList.add(blogVo.getImgThree());
-                    if (blogVo.getImgFour() != null) imgList.add(blogVo.getImgFour());
-                    blogVo.setImgList(imgList);
-                    //保存到redis中，并设置生存时长
-                    ops.set(blogVoInfoKey,JSON.toJSONString(blogVo),
-                            Constant.ONE_HOURS_EXPIRE + RandomSxpire.getRandomSxpire(),TimeUnit.MILLISECONDS);
+                    if(blogVo == null){
+                        //如果查询的数据为空，则向缓存中写入空串，并设置5分钟（短期）的过期时间（避免缓存穿透）
+                        ops.set(blogVoInfoKey,"",
+                                Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),TimeUnit.MILLISECONDS);//5分钟
+                    }else {
+                        List<String> imgList = new ArrayList<>();
+                        if (blogVo.getImgOne() != null) imgList.add(blogVo.getImgOne());
+                        if (blogVo.getImgTwo() != null) imgList.add(blogVo.getImgTwo());
+                        if (blogVo.getImgThree() != null) imgList.add(blogVo.getImgThree());
+                        if (blogVo.getImgFour() != null) imgList.add(blogVo.getImgFour());
+                        blogVo.setImgList(imgList);
+                        //保存到redis中，并设置生存时长
+                        ops.set(blogVoInfoKey,JSON.toJSONString(blogVo),
+                                Constant.ONE_HOURS_EXPIRE + RandomSxpire.getRandomSxpire(),TimeUnit.MILLISECONDS);
+                    }
                 }
             } finally {
                 lock.unlock();//解锁

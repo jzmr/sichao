@@ -74,6 +74,10 @@ public class BlogLikeUserServiceImpl extends ServiceImpl<BlogLikeUserMapper, Blo
             ops.increment(blogLikeCountModifyKey);//自增，如果key不存在，则先创建整个key且值为0，而后再自增
             //被点赞博客的作者的总点赞数变化数+1
             ops.increment(userLikeCountModifyKey);
+            //删除用户与博客的点赞关系缓存
+            String blogLikeByUserKey = PrefixKeyConstant.BLOG_LIKE_BY_USER_PREFIX+userId+"-"+blogId;//用户点赞博客信息key
+            stringRedisTemplate.delete(blogLikeByUserKey);
+
         }
     }
 
@@ -104,6 +108,9 @@ public class BlogLikeUserServiceImpl extends ServiceImpl<BlogLikeUserMapper, Blo
             ops.decrement(blogLikeCountModifyKey);//自减，如果key不存在，则先创建整个key且值为0，而后再自减
             //被点赞博客的作者的总点赞数变化数-1
             ops.decrement(userLikeCountModifyKey);
+            //删除用户与博客的点赞关系缓存
+            String blogLikeByUserKey = PrefixKeyConstant.BLOG_LIKE_BY_USER_PREFIX+userId+"-"+blogId;//用户点赞博客信息key
+            stringRedisTemplate.delete(blogLikeByUserKey);
         }
     }
 

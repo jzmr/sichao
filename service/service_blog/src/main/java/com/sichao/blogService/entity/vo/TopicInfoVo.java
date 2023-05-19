@@ -26,4 +26,10 @@ public class TopicInfoVo {
     @Schema(description = "话题创建者ID")
     private String creatorId;
 
+    @Schema(description = "话题创建者昵称")
+    private String creatorNickname;
+
+    @Schema(description = "话题创建者头像")
+    private String creatorAvatarUrl;
+
 }
