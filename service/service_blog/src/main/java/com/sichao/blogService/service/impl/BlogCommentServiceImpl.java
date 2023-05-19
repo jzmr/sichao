@@ -171,10 +171,21 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         //删除评论
         baseMapper.deleteById(commentId);
 
-        //删除该评论在所属博客下评论key中的缓存数据
+        /**
+         * 删除博客或评论时，不能直接删除排序列表中的value，不然会改变zSet的结果，出现查询出重复数据问题。
+         * 需要先查询该value的分值score，再删除该value，在以delete+value为值、score为分值保存数据到zSet中，
+         * 查询时如果id是delete开头的不去查询数据
+         */
+        //为该评论在所属博客下评论key中的数据添加Delete前缀
         ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
         String commentZSetKey = PrefixKeyConstant.BLOG_COMMENT_PREFIX + blogComment.getBlogId();//博客下评论key
-        zSet.remove(commentZSetKey,commentId);//移除评论id
+        Long size = zSet.size(commentZSetKey);//查看key的长度，key不存在时为0（key不存在时查看key的长度不会创建该key，即长度为0时该key不存在）
+        if(size!=null && size>0){//key存在
+            Double score = zSet.score(commentZSetKey, commentId);//获取分值
+            zSet.remove(commentZSetKey,commentId);//移除评论id
+            zSet.add(commentZSetKey, Constant.BLOG_DELETE_PREFIX +commentId,score);//以score为分值插入value占位
+        }
+
         //删除缓存评论信息key
         String commentVoInfoKey = PrefixKeyConstant.BLOG_COMMENT_VO_INFO_PREFIX+commentId;//评论vo信息key
         stringRedisTemplate.delete(commentVoInfoKey);
@@ -220,6 +231,9 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         if(set==null)return null;
         List<CommentVo> commentVoList=new ArrayList<>();
         for (String commentId : set) {
+            if(commentId.contains(Constant.BLOG_DELETE_PREFIX)){//说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位
+                continue;//此时不拿数据
+            }
             CommentVo commentVo = getCommentVoInfo(commentId);
             commentVoList.add(commentVo);
         }
@@ -272,6 +286,9 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         if(set==null)return null;
         List<CommentVo> commentVoList=new ArrayList<>();
         for (String commentId : set) {
+            if(commentId.contains(Constant.BLOG_DELETE_PREFIX)){//说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位
+                continue;//此时不拿数据
+            }
             CommentVo commentVo = getCommentVoInfo(commentId);
             commentVoList.add(0,commentVo);//倒插
         }
@@ -345,6 +362,7 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         QueryWrapper<BlogComment> wrapper = new QueryWrapper<>();
         wrapper.eq("blog_id",blogId);
         baseMapper.delete(wrapper);
-        //缓存中的评论信息这里就不取删除了，等待评论信息的生存时长过期就会自动删除
+        //缓存中的评论信息这里就不去删除了，因为博客删除，其下的使用评论也不会被查询到了，
+        //也就不会有查询重复数据的问题了。所以等待评论信息的生存时长过期就会自动删除。
     }
 }

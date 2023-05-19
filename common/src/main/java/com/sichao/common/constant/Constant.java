@@ -52,4 +52,6 @@ public class Constant {
     public static final String BLOG_AT_TOPIC_HYPERLINK_PREFIX = "<a href=\"/blog/topic/";//+话题id    （#话题#超链接前缀）
     public static final String BLOG_AT_TOPIC_HYPERLINK_INFIX = "\" style=\"color:blue;\">";//+#话题title# （#话题#超链接中缀）
     public static final String BLOG_AT_TOPIC_HYPERLINK_SUFFIX = "</a>";//（#话题#超链接后缀）
+
+    public static final String BLOG_DELETE_PREFIX = "Delete";//（博客或评论删除时修改zset类型中的value值时添加的前缀）
 }

@@ -293,8 +293,11 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         if(set==null)return null;
         List<BlogVo> blogVoList=new ArrayList<>();
         for (String blogId : set) {
-            BlogVo blogVo = getBLogVoInfo(blogId);
+            if(blogId.contains(Constant.BLOG_DELETE_PREFIX)){//说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位
+                continue;//此时不拿数据
+            }
 
+            BlogVo blogVo = getBLogVoInfo(blogId);
             //博客信息可以查缓存，但是博客的评论数与点赞数要加上redis中的变化数
             String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogId);
             if(CommentCountModify!=null){
@@ -382,28 +385,43 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         //根据保存在集合中的blogId查询出BlogVo对象,并添加评论数与点赞数的变化数后保存进集合中
         if(set==null)return null;
         List<BlogVo> blogVoList=new ArrayList<>();
-        for (String blogId : set) {
-            BlogVo blogVo = getBLogVoInfo(blogId);
-
-            //博客信息可以查缓存，但是博客的评论数与点赞数要加上redis中的变化数
-            String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogId);
-            if(CommentCountModify!=null){
-                blogVo.setCommentCount(blogVo.getCommentCount() + Integer.parseInt(CommentCountModify));
-            }
-            String likeCountModify = ops.get(blogLikeCountModifyPrefix + blogId);
-            if(likeCountModify != null){
-                blogVo.setLikeCount(blogVo.getLikeCount()+Integer.parseInt(likeCountModify));
-            }
-            //查看当前用户是否点赞该博客
-            boolean likeByCurrentUser = blogLikeUserService.getIsLikeBlogByUserId(userId,blogId);
-            blogVo.setLikeByCurrentUser(likeByCurrentUser);
-
-            blogVoList.add(0,blogVo);//倒插
-        }
         int end=0;
         if(start>=0) end=Math.max(start - limit + 1, 0);
         else if(start==-2)end= (int) Math.max(size-limit,0);
 
+        int len=0;//用来控制倒插数据到set时的索引
+        //去获取十个数据，全拿满就不继续拿了
+        while (set!=null && !set.isEmpty()){
+            for (String blogId : set) {
+                if(blogId.contains(Constant.BLOG_DELETE_PREFIX)){//说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位
+                    continue;//此时不拿数据
+                }
+
+                BlogVo blogVo = getBLogVoInfo(blogId);
+                //博客信息可以查缓存，但是博客的评论数与点赞数要加上redis中的变化数
+                String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogId);
+                if(CommentCountModify!=null){
+                    blogVo.setCommentCount(blogVo.getCommentCount() + Integer.parseInt(CommentCountModify));
+                }
+                String likeCountModify = ops.get(blogLikeCountModifyPrefix + blogId);
+                if(likeCountModify != null){
+                    blogVo.setLikeCount(blogVo.getLikeCount()+Integer.parseInt(likeCountModify));
+                }
+                //查看当前用户是否点赞该博客
+                boolean likeByCurrentUser = blogLikeUserService.getIsLikeBlogByUserId(userId,blogId);
+                blogVo.setLikeByCurrentUser(likeByCurrentUser);
+
+                blogVoList.add(len,blogVo);//倒插
+                if(blogVoList.size()==limit)break;
+            }
+            len=blogVoList.size();
+            if(len==limit || end==0){
+                break;
+            }
+            int st=end-1;
+            end=Math.max(end-limit,0);//重新计算末尾值索引
+            set=zSet.range(realTimeBlogZSetKey,end,st);
+        }
         Map<String,Object> map=new HashMap<>();
         map.put("blogVoList",blogVoList);
         map.put("end",end);

@@ -5,6 +5,7 @@ import com.sichao.blogService.entity.BlogTopicRelation;
 import com.sichao.blogService.mapper.BlogTopicRelationMapper;
 import com.sichao.blogService.service.BlogTopicRelationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -60,11 +61,17 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
 
             //将博客id放入话题下实时博客key
             ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+            String blogZSetKey = PrefixKeyConstant.BLOG_BY_TOPIC_PREFIX + topicId;//话题下综合博客id列表key
             String realTimeBlogZSetKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_PREFIX + topicId;//话题下实时博客key
             Long size = zSet.size(realTimeBlogZSetKey);//查看key的长度，key不存在时为0（key不存在时查看key的长度不会创建该key，即长度为0时该key不存在）
             if(size!=null && size>0){//key存在
                 zSet.add(realTimeBlogZSetKey,blogId,createTimestamp);//将博客id放入话题下实时博客key
             }
+            Long size1 = zSet.size(blogZSetKey);
+            if(size1!=null && size1>0){//key存在
+                zSet.add(blogZSetKey,blogId,0);//将博客id放入话题下综合博客key
+            }
+
         }
     }
 
@@ -89,14 +96,29 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
         QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
         wrapper.eq("blog_id",blogId);
         wrapper.select("topic_id");
-        //查询出所有博客与话题关系，删除该博客在所有相关话题下的实时博客key中的数据
+
+        /**
+         * 删除博客或评论时，不能直接删除排序列表中的value，不然会改变zSet的结果，出现查询出重复数据问题。
+         * 需要先查询该value的分值score，再删除该value，在以delete+value为值、score为分值保存数据到zSet中，
+         * 查询时如果id是delete开头的不去查询数据
+         */
+        //查询出所有博客与话题关系，为该博客在所有相关话题下的综合与实时博客key中的数据添加Delete前缀
         List<BlogTopicRelation> list = baseMapper.selectList(wrapper);
         for (BlogTopicRelation blogTopicRelation : list) {
             ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();
+            String blogZSetKey = PrefixKeyConstant.BLOG_BY_TOPIC_PREFIX + blogTopicRelation.getTopicId();//话题下综合博客id列表key
             String realTimeBlogZSetKey = PrefixKeyConstant.BLOG_REAL_TIME_BY_TOPIC_PREFIX + blogTopicRelation.getTopicId();//话题下实时博客key
             Long size = zSet.size(realTimeBlogZSetKey);//查看key的长度，key不存在时为0（key不存在时查看key的长度不会创建该key，即长度为0时该key不存在）
             if(size!=null && size>0){//key存在
+                Double score = zSet.score(realTimeBlogZSetKey, blogId);//获取分值
                 zSet.remove(realTimeBlogZSetKey,blogId);//移除博客id
+                zSet.add(realTimeBlogZSetKey, Constant.BLOG_DELETE_PREFIX +blogId,score);//以score为分值插入value占位
+            }
+            Long size1 = zSet.size(blogZSetKey);
+            if(size1!=null && size1>0){//key存在
+                Double score = zSet.score(blogZSetKey, blogId);//获取分值
+                zSet.remove(blogZSetKey,blogId);//移除博客id
+                zSet.add(blogZSetKey, Constant.BLOG_DELETE_PREFIX +blogId,score);//以score为分值插入value占位
             }
         }
         //删除所有博客与话题关系
