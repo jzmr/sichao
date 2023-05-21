@@ -111,14 +111,18 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
             Long size = zSet.size(realTimeBlogZSetKey);//查看key的长度，key不存在时为0（key不存在时查看key的长度不会创建该key，即长度为0时该key不存在）
             if(size!=null && size>0){//key存在
                 Double score = zSet.score(realTimeBlogZSetKey, blogId);//获取分值
-                zSet.remove(realTimeBlogZSetKey,blogId);//移除博客id
-                zSet.add(realTimeBlogZSetKey, Constant.BLOG_DELETE_PREFIX +blogId,score);//以score为分值插入value占位
+                if(score!=null) {
+                    zSet.remove(realTimeBlogZSetKey, blogId);//移除博客id
+                    zSet.add(realTimeBlogZSetKey, Constant.BLOG_DELETE_PREFIX + blogId, score);//以score为分值插入value占位
+                }
             }
             Long size1 = zSet.size(blogZSetKey);
             if(size1!=null && size1>0){//key存在
                 Double score = zSet.score(blogZSetKey, blogId);//获取分值
-                zSet.remove(blogZSetKey,blogId);//移除博客id
-                zSet.add(blogZSetKey, Constant.BLOG_DELETE_PREFIX +blogId,score);//以score为分值插入value占位
+                if(score!=null) {
+                    zSet.remove(blogZSetKey, blogId);//移除博客id
+                    zSet.add(blogZSetKey, Constant.BLOG_DELETE_PREFIX + blogId, score);//以score为分值插入value占位
+                }
             }
         }
         //删除所有博客与话题关系

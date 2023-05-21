@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.sichao.userService.entity.vo.FollowListVo;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -28,4 +29,6 @@ public interface UserFollowService extends IService<UserFollow> {
     List<FollowListVo> getFollowerList(String currentId, String id);
     //查询当前用户关注的用户的昵称
     List<String> getFollowingNicknameList(String userId);
+    //获取用户关注列表的缓存
+    Set<String> getFollowingSetCache(String userId);
 }

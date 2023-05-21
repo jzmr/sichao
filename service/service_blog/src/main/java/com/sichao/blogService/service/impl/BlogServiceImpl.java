@@ -15,12 +15,10 @@ import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
 import com.sichao.common.constant.RabbitMQConstant;
 import com.sichao.common.entity.MqMessage;
-import com.sichao.common.entity.to.UserInfoTo;
 import com.sichao.common.exceptionhandler.sichaoException;
 import com.sichao.common.mapper.MqMessageMapper;
 import com.sichao.common.utils.R;
 import com.sichao.common.utils.RandomSxpire;
-import io.swagger.v3.core.util.Json;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -230,7 +228,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
                 map,new CorrelationData(topicMqMessage.getId()));//以mq消息表id作为数据标识
     }
 
-    //查询指定话题id下的博客(使用redis的zSet数据类型缓存)(前端会根据BlogVo的id属性去除重复数据)
+    //查询指定话题id下的博客(使用redis的zSet数据类型缓存)
     @Override
     public List<BlogVo> getBlogByTopicId(String userId, String topicId,int page,int limit) {
         ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();
@@ -257,32 +255,40 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
                 if(set==null || set.isEmpty()){
                     //查询话题下所有博客
                     List<BlogTopicRelation> blogIdList = blogTopicRelationService.getBlogListByTopicId(topicId);
+                    if(blogIdList!=null && !blogIdList.isEmpty()){
+                        for (BlogTopicRelation relation : blogIdList) {
+                            String blogId = relation.getBlogId();
+                            BlogVo blogVo = getBLogVoInfo(blogId);
+                            if(blogVo==null)continue;
 
-                    for (BlogTopicRelation relation : blogIdList) {
-                        String blogId = relation.getBlogId();
-                        BlogVo blogVo = getBLogVoInfo(blogId);
-                        if(blogVo==null)continue;
-
-                        //计算分值//分值等于博客下评论数+点赞数
-                        int score=blogVo.getCommentCount()+blogVo.getLikeCount();
-                        String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogVo.getId());
-                        if(CommentCountModify!=null){
-                            score += Integer.parseInt(CommentCountModify);
+                            //计算分值//分值等于博客下评论数+点赞数
+                            int score=blogVo.getCommentCount()+blogVo.getLikeCount();
+                            String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogVo.getId());
+                            if(CommentCountModify!=null){
+                                score += Integer.parseInt(CommentCountModify);
+                            }
+                            String likeCountModify = ops.get(blogLikeCountModifyPrefix + blogVo.getId());
+                            if(likeCountModify != null){
+                                score += Integer.parseInt(likeCountModify);
+                            }
+                            //保存到redis的zSet中
+                            zSet.add(blogZSetKey,blogId,score);
+                            //为key设置生存时长
+                            stringRedisTemplate.expire(blogZSetKey,
+                                    Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),
+                                    TimeUnit.MILLISECONDS);
                         }
-                        String likeCountModify = ops.get(blogLikeCountModifyPrefix + blogVo.getId());
-                        if(likeCountModify != null){
-                            score += Integer.parseInt(likeCountModify);
-                        }
-                        //保存到redis的zSet中
-                        zSet.add(blogZSetKey,blogId,score);
+                    }else {
+                        //如果查询的数据为空，则向缓存中写入空串，并设置5分钟（短期）的过期时间（避免缓存穿透）
+                        zSet.add(blogZSetKey,"",0);
+                        //为key设置生存时长
+                        stringRedisTemplate.expire(blogZSetKey,
+                                Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),//5分钟
+                                TimeUnit.MILLISECONDS);
                     }
-                    //为key设置生存时长
-                    stringRedisTemplate.expire(blogZSetKey,
-                            Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),
-                            TimeUnit.MILLISECONDS);
+                    set = zSet.reverseRange(blogZSetKey, (long) (page - 1) *limit, (long) page *limit-1);//查询回显
                 }
             }finally {
-                set = zSet.reverseRange(blogZSetKey, (long) (page - 1) *limit, (long) page *limit-1);//查询回显
                 lock.unlock();//解锁
             }
         }
@@ -291,30 +297,14 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         if(set==null)return null;
         List<BlogVo> blogVoList=new ArrayList<>();
         for (String blogId : set) {
-            if(blogId.contains(Constant.BLOG_DELETE_PREFIX)){//说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位
-                continue;//此时不拿数据
-            }
-
-            BlogVo blogVo = getBLogVoInfo(blogId);
-            //博客信息可以查缓存，但是博客的评论数与点赞数要加上redis中的变化数
-            String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogId);
-            if(CommentCountModify!=null){
-                blogVo.setCommentCount(blogVo.getCommentCount() + Integer.parseInt(CommentCountModify));
-            }
-            String likeCountModify = ops.get(blogLikeCountModifyPrefix + blogId);
-            if(likeCountModify != null){
-                blogVo.setLikeCount(blogVo.getLikeCount()+Integer.parseInt(likeCountModify));
-            }
-            //查看当前用户是否点赞该博客
-            boolean likeByCurrentUser = blogLikeUserService.getIsLikeBlogByUserId(userId,blogId);
-            blogVo.setLikeByCurrentUser(likeByCurrentUser);
-
+            //博客vo数据处理
+            BlogVo blogVo = blogVoHandle(userId, blogId, ops, blogCommentCountModifyPrefix, blogLikeCountModifyPrefix);
             blogVoList.add(blogVo);
         }
         return blogVoList;
     }
 
-    //查询指定话题id下的实时博客(使用redis的zSet数据类型缓存)(前端会根据BlogVo的id属性去除重复数据)
+    //查询指定话题id下的实时博客(使用redis的zSet数据类型缓存)
     /**使用redis的zSet类型做为存放实时博客的容器，规定为以时间戳为分值插入数据
      * start:>=0 本次要查询的博客从start位置从右往左查询     -2：说明用户第一次进入查询实时博客的页面   -1：说明所有博客已经查询出来了
      * 使用start控制要查询的数据，limit控制查询的长度
@@ -353,19 +343,29 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
                 if(set==null || set.isEmpty()){
                     //查询话题下所有实时博客(根据创建时间升序查询)
                     List<BlogTopicRelation> blogIdList = blogTopicRelationService.getRealTimetBlogListByTopicId(topicId);
-                    for (BlogTopicRelation relation : blogIdList) {
-                        String blogId = relation.getBlogId();
-                        //转换成Unix时间戳
-                        LocalDateTime createTime = relation.getCreateTime();
-                        long timestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+                    if(blogIdList!=null && !blogIdList.isEmpty()){
+                        for (BlogTopicRelation relation : blogIdList) {
+                            String blogId = relation.getBlogId();
+                            //转换成Unix时间戳
+                            LocalDateTime createTime = relation.getCreateTime();
+                            long timestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
 
-                        //保存到redis中
-                        zSet.add(realTimeBlogZSetKey,blogId,timestamp);
+                            //保存到redis中
+                            zSet.add(realTimeBlogZSetKey,blogId,timestamp);
+                        }
+                        //为key设置生存时长
+                        stringRedisTemplate.expire(realTimeBlogZSetKey,
+                                Constant.THIRTY_DAYS_EXPIRE + RandomSxpire.getRandomSxpire(),//30天
+                                TimeUnit.MILLISECONDS);
+                    }else {
+                        //如果查询的数据为空，则向缓存中写入空串，并设置5分钟（短期）的过期时间（避免缓存穿透）
+                        zSet.add(realTimeBlogZSetKey,"",0);
+                        //为key设置生存时长
+                        stringRedisTemplate.expire(realTimeBlogZSetKey,
+                                Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),//5分钟
+                                TimeUnit.MILLISECONDS);
                     }
-                    //为key设置生存时长
-                    stringRedisTemplate.expire(realTimeBlogZSetKey,
-                            Constant.THIRTY_DAYS_EXPIRE + RandomSxpire.getRandomSxpire(),//30天
-                            TimeUnit.MILLISECONDS);
+
                     //查询缓存赋值给set给后面使用
                     size = zSet.size(realTimeBlogZSetKey);//key不存在时，结果为0
                     if(size !=null && size >0){//key中有数据则进行处理
@@ -391,24 +391,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         //去获取十个数据，全拿满就不继续拿了
         while (set!=null && !set.isEmpty()){
             for (String blogId : set) {
-                if(blogId.contains(Constant.BLOG_DELETE_PREFIX)){//说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位
-                    continue;//此时不拿数据
-                }
-
-                BlogVo blogVo = getBLogVoInfo(blogId);
-                //博客信息可以查缓存，但是博客的评论数与点赞数要加上redis中的变化数
-                String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogId);
-                if(CommentCountModify!=null){
-                    blogVo.setCommentCount(blogVo.getCommentCount() + Integer.parseInt(CommentCountModify));
-                }
-                String likeCountModify = ops.get(blogLikeCountModifyPrefix + blogId);
-                if(likeCountModify != null){
-                    blogVo.setLikeCount(blogVo.getLikeCount()+Integer.parseInt(likeCountModify));
-                }
-                //查看当前用户是否点赞该博客
-                boolean likeByCurrentUser = blogLikeUserService.getIsLikeBlogByUserId(userId,blogId);
-                blogVo.setLikeByCurrentUser(likeByCurrentUser);
-
+                //博客vo数据处理
+                BlogVo blogVo = blogVoHandle(userId, blogId, ops, blogCommentCountModifyPrefix, blogLikeCountModifyPrefix);
                 blogVoList.add(len,blogVo);//倒插
                 if(blogVoList.size()==limit)break;
             }
@@ -424,6 +408,180 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         map.put("blogVoList",blogVoList);
         map.put("end",end);
         return map;
+    }
+
+    //查询用户博客
+    /**使用redis的zSet类型做为存放用户博客的容器，规定为以时间戳为分值插入数据
+     * start:>=0 本次要查询的博客从start位置从右往左查询     -2：说明用户第一次进入查询实时博客的页面   -1：说明缓存中所有博客已经查询出来了 -3：数据中的博客数据也查询忘了
+     * startTimestamp用来动态记录上一次从型数据库时，查询到哪个时间，将查询的数据的时间最小的时间转换成时间戳返回给前端，前端点击查询更多博客时带上该这个数据
+     * 使用start控制要查询的数据，limit控制查询的长度
+     */
+    @Override
+    public Map<String,Object> getUserBlog(String userId, String targetUserId, int start, int limit,long startTimestamp) {
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+        String userBlogZSetLockKey = PrefixKeyConstant.BLOG_USER_BLOG_LOCK_PREFIX + targetUserId;//用户的博客的id查询锁的key
+        String userBlogZSetKey = PrefixKeyConstant.BLOG_USER_BLOG_PREFIX + targetUserId;//用户的博客id的key
+        String blogCommentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数前缀
+        String blogLikeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数前缀
+
+        if(start==-3)return null;//数据以全部取完，直接返回null
+
+        Set<String> set=new HashSet<>();
+        Long size = 0L;
+        if(start==-1){//表示缓存中的博客数据已被消费完，去数据库中拉取100条记录
+            //获取最后一条博客的时间
+            if(startTimestamp==0) {
+                Set<ZSetOperations.TypedTuple<String>> typedTuples = zSet.rangeWithScores(userBlogZSetKey, 0, 0);
+                if (typedTuples != null && !typedTuples.isEmpty()) {
+                    for (ZSetOperations.TypedTuple<String> typedTuple : typedTuples) {
+                        Double score = typedTuple.getScore();
+                        startTimestamp = (long) score.doubleValue();
+                    }
+                }
+            }
+            LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(startTimestamp/1000,0,ZoneOffset.ofHours(0));
+            //查询用户博客(根据创建时间倒序查询前100条)
+            QueryWrapper<Blog> wrapper = new QueryWrapper<>();
+            wrapper.eq("creator_id",targetUserId);
+            wrapper.eq("status",1);
+            wrapper.lt("create_time",localDateTime);//博客创建时间小于指定时间
+            wrapper.select("id","create_time");
+            wrapper.orderByDesc("create_time");
+            wrapper.last("limit 100");
+            List<Blog> blogList = baseMapper.selectList(wrapper);
+
+            Map<String,Object> map=new HashMap<>();
+            List<BlogVo> blogVoList=new ArrayList<>();
+            if(blogList!=null && !blogList.isEmpty()){
+                for (Blog blog : blogList) {
+                    String blogId = blog.getId();
+                    //博客vo数据处理
+                    BlogVo blogVo = blogVoHandle(userId, blogId, ops, blogCommentCountModifyPrefix, blogLikeCountModifyPrefix);
+                    blogVoList.add(blogVo);
+                }
+                //将最后一个元素（也就是创建时间最早的元素）的创建时间转换成Unix时间戳，而后返回给前端
+                LocalDateTime createTime = blogList.get(blogList.size() - 1).getCreateTime();
+                startTimestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+
+                map.put("end",-1);
+                map.put("startTimestamp",startTimestamp);
+            }else {
+                //表示数据以全部取完
+                map.put("end",-3);
+                map.put("startTimestamp",0);
+                return map;
+            }
+            map.put("blogVoList",blogVoList);
+            return map;
+        }else {
+            size = zSet.size(userBlogZSetKey);//key不存在时，结果为0
+            if(size !=null && size >0){//key中有数据则进行处理
+                //判断查询是否溢出
+                if(start>=size)return null;//查询的条数超过总博客数
+                else if(start>=0) set = zSet.range(userBlogZSetKey, Math.max(start - limit + 1, 0), start);//以升序查询，从右往左拿里limit条数据
+                else if(start==-2)set = zSet.range(userBlogZSetKey, Math.max(size-limit,0),size-1);//以升序查询，从最右边开始往左拿limit条数据
+            }
+        }
+        if(set==null || set.isEmpty()){
+            RLock lock = redissonClient.getLock(userBlogZSetLockKey);
+            lock.lock();//加锁，阻塞
+            try {//双查机制，在锁内再查一遍缓存中是否有数据
+                set = zSet.range(userBlogZSetKey, 0, 0);
+                if(set==null || set.isEmpty()){
+                    //查询用户博客(根据创建时间倒序查询前200条)
+                    QueryWrapper<Blog> wrapper = new QueryWrapper<>();
+                    wrapper.eq("creator_id",targetUserId);
+                    wrapper.eq("status",1);
+                    wrapper.select("id","create_time");
+                    wrapper.orderByDesc("create_time");
+                    wrapper.last("limit 200");
+                    List<Blog> blogList = baseMapper.selectList(wrapper);
+
+                    if(blogList!=null && !blogList.isEmpty()){
+                        for (Blog blog : blogList) {
+                            String blogId = blog.getId();
+                            //转换成Unix时间戳
+                            LocalDateTime createTime = blog.getCreateTime();
+                            long timestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+
+                            //保存到redis中
+                            zSet.add(userBlogZSetKey,blogId,timestamp);
+                        }
+                        //为key设置生存时长
+                        stringRedisTemplate.expire(userBlogZSetKey,
+                                Constant.THREE_DAYS_EXPIRE + RandomSxpire.getRandomSxpire(),//3天
+                                TimeUnit.MILLISECONDS);
+                    }else {
+                        //如果查询的数据为空，则向缓存中写入空串，并设置5分钟（短期）的过期时间（避免缓存穿透）
+                        zSet.add(userBlogZSetKey,"",0);
+                        //为key设置生存时长
+                        stringRedisTemplate.expire(userBlogZSetKey,
+                                Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),//5分钟
+                                TimeUnit.MILLISECONDS);
+                    }
+                }
+                //查询缓存赋值给set给后面使用
+                size = zSet.size(userBlogZSetKey);//key不存在时，结果为0
+                if(size !=null && size >0){//key中有数据则进行处理
+                    //判断查询是否溢出
+                    if(start>=size)return null;//查询的条数超过总博客数
+                    else if(start>=0) set = zSet.range(userBlogZSetKey, Math.max(start - limit + 1, 0), start);//以升序查询，从右往左拿里limit条数据
+                    else if(start==-2)set = zSet.range(userBlogZSetKey, Math.max(size-limit,0),size-1);//以升序查询，从最右边开始往左拿limit条数据
+                }
+            }finally {
+                lock.unlock();//解锁
+            }
+        }
+
+        //根据保存在集合中的blogId查询出BlogVo对象,并添加评论数与点赞数的变化数后保存进集合中
+        if(set==null)return null;
+        List<BlogVo> blogVoList=new ArrayList<>();
+        for (String blogId : set) {
+            //博客vo数据处理
+            BlogVo blogVo = blogVoHandle(userId, blogId, ops, blogCommentCountModifyPrefix, blogLikeCountModifyPrefix);
+            blogVoList.add(0,blogVo);//倒插
+        }
+        int end=0;
+        if(start>=0) end=Math.max(start - limit + 1, 0);
+        else if(start==-2)end= (int) Math.max(size-limit,0);
+        Map<String,Object> map=new HashMap<>();
+        map.put("blogVoList",blogVoList);
+        map.put("end",end);
+        map.put("startTimestamp",startTimestamp);
+        return map;
+    }
+
+    //查询我的关注用户的博客(使用redis的zSet数据类型缓存)
+    @Override
+    public List<BlogVo> getMyFeedBlog(String userId,int start, int limit) {
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+        String feedBlogZSetLockKey = PrefixKeyConstant.BLOG_FEED_LOCK_PREFIX + userId;//关注用户的博客id查询锁key
+        String feedBlogZSetKey = PrefixKeyConstant.BLOG_FEED_PREFIX + userId;//关注用户的博客id的key
+        String blogCommentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数前缀
+        String blogLikeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数前缀
+
+        if(start==-1){//feed流已被消费完，在拉取100条记录到feed流收件箱中
+
+        }else if(start==-2){
+
+        }else {
+
+        }
+
+//        //查询该用户上一次在Feed流中获取博客数据的时间戳
+//        Double score = zSet.score(feedTimestampZSetKey, userId);
+//        zSet.range()
+//        System.out.println("=============score:"+score);
+//        if(score==null){//无指定用户上一次拉取feed流的时间戳，默认拉取100条记录
+//
+//        }else {
+//
+//        }
+
+
+        return null;
     }
 
     //获取博客vo信息（使用redis的String类型缓存）
@@ -462,6 +620,37 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             }
         }
 
+        return blogVo;
+    }
+
+    /**
+     * 查询博客时的处理方法
+     * @param userId 当前用户id
+     * @param blogId 博客id
+     * @param ops    redis的string类型处理对象
+     * @param blogCommentCountModifyPrefix  评论数变化数前缀
+     * @param blogLikeCountModifyPrefix     点赞数变化数前缀
+     * @return BlogVo对象
+     */
+    public BlogVo blogVoHandle(String userId,String blogId,ValueOperations<String, String> ops,String blogCommentCountModifyPrefix,String blogLikeCountModifyPrefix){
+        //为true则说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位,或是防止缓存穿透的空串缓存
+        if(blogId.contains(Constant.BLOG_DELETE_PREFIX) || "".equals(blogId)){
+            return null;//此时不拿数据
+        }
+
+        BlogVo blogVo = getBLogVoInfo(blogId);
+        //博客信息可以查缓存，但是博客的评论数与点赞数要加上redis中的变化数
+        String CommentCountModify = ops.get(blogCommentCountModifyPrefix + blogId);
+        if(CommentCountModify!=null){
+            blogVo.setCommentCount(blogVo.getCommentCount() + Integer.parseInt(CommentCountModify));
+        }
+        String likeCountModify = ops.get(blogLikeCountModifyPrefix + blogId);
+        if(likeCountModify != null){
+            blogVo.setLikeCount(blogVo.getLikeCount()+Integer.parseInt(likeCountModify));
+        }
+        //查看当前用户是否点赞该博客
+        boolean likeByCurrentUser = blogLikeUserService.getIsLikeBlogByUserId(userId,blogId);
+        blogVo.setLikeByCurrentUser(likeByCurrentUser);
         return blogVo;
     }
 

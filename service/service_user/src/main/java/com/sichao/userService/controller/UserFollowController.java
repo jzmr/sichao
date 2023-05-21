@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -124,7 +125,13 @@ public class UserFollowController {
         List<String> nicknameList = userFollowService.getFollowingNicknameList(map.get("userId"));
         return R.ok().data("nicknameList",nicknameList);
     }
-
+    //获取用户关注列表(用于远程调用)
+    @Operation(summary = "获取用户关注列表")
+    @GetMapping("/getFollowingSetCache")
+    public R getFollowingSetCache(@RequestParam("userId") String userId){
+        Set<String> followingSet = userFollowService.getFollowingSetCache(userId);
+        return R.ok().data("followingSet",followingSet);
+    }
 
 
     // 查看用户关注量、粉丝量,

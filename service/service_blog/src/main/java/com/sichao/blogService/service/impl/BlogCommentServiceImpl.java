@@ -182,8 +182,10 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         Long size = zSet.size(commentZSetKey);//查看key的长度，key不存在时为0（key不存在时查看key的长度不会创建该key，即长度为0时该key不存在）
         if(size!=null && size>0){//key存在
             Double score = zSet.score(commentZSetKey, commentId);//获取分值
-            zSet.remove(commentZSetKey,commentId);//移除评论id
-            zSet.add(commentZSetKey, Constant.BLOG_DELETE_PREFIX +commentId,score);//以score为分值插入value占位
+            if(score!=null) {
+                zSet.remove(commentZSetKey, commentId);//移除评论id
+                zSet.add(commentZSetKey, Constant.BLOG_DELETE_PREFIX + commentId, score);//以score为分值插入value占位
+            }
         }
 
         //删除缓存评论信息key
@@ -231,7 +233,8 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         if(set==null)return null;
         List<CommentVo> commentVoList=new ArrayList<>();
         for (String commentId : set) {
-            if(commentId.contains(Constant.BLOG_DELETE_PREFIX)){//说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位
+            //为true则说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位,或是防止缓存穿透的空串缓存
+            if(commentId.contains(Constant.BLOG_DELETE_PREFIX) || "".equals(commentId)){
                 continue;//此时不拿数据
             }
             CommentVo commentVo = getCommentVoInfo(commentId);
@@ -286,7 +289,8 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         if(set==null)return null;
         List<CommentVo> commentVoList=new ArrayList<>();
         for (String commentId : set) {
-            if(commentId.contains(Constant.BLOG_DELETE_PREFIX)){//说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位
+            //为true则说明以不是正常的博客id，是已经被删除的为了避免顺序错乱而用来占位,或是防止缓存穿透的空串缓存
+            if(commentId.contains(Constant.BLOG_DELETE_PREFIX) || "".equals(commentId)){
                 continue;//此时不拿数据
             }
             CommentVo commentVo = getCommentVoInfo(commentId);
@@ -312,18 +316,27 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         if(set==null || set.isEmpty()){//缓存不存在
             //查询博客下所有实时评论(根据创建时间升序查询)
             List<CommentVo> commentVoList = baseMapper.getCommentByBlogId(blogId);
-            for (CommentVo commentVo : commentVoList) {
-                //转换成Unix时间戳
-                LocalDateTime createTime = commentVo.getCreateTime();
-                long timestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+            if(commentVoList!=null && !commentVoList.isEmpty()) {
+                for (CommentVo commentVo : commentVoList) {
+                    //转换成Unix时间戳
+                    LocalDateTime createTime = commentVo.getCreateTime();
+                    long timestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
 
-                //将评论id保存到redis中的zSet类型中，使用时间戳自动排序
-                zSet.add(commentZSetKey,commentVo.getId(),timestamp);
+                    //将评论id保存到redis中的zSet类型中，使用时间戳自动排序
+                    zSet.add(commentZSetKey, commentVo.getId(), timestamp);
+                }
+                //为zSet的key设置生存时长
+                stringRedisTemplate.expire(commentZSetKey,
+                        Constant.THIRTY_DAYS_EXPIRE + RandomSxpire.getRandomSxpire(),//30天
+                        TimeUnit.MILLISECONDS);
+            }else {
+                //如果查询的数据为空，则向缓存中写入空串，并设置5分钟（短期）的过期时间（避免缓存穿透）
+                zSet.add(commentZSetKey,"",0);
+                //为key设置生存时长
+                stringRedisTemplate.expire(commentZSetKey,
+                        Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),//5分钟
+                        TimeUnit.MILLISECONDS);
             }
-            //为zSet的key设置生存时长
-            stringRedisTemplate.expire(commentZSetKey,
-                    Constant.THIRTY_DAYS_EXPIRE + RandomSxpire.getRandomSxpire(),//30天
-                    TimeUnit.MILLISECONDS);
         }
     }
     //获取评论vo信息（使用redis的String类型缓存）

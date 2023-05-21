@@ -38,6 +38,7 @@ public class Constant {
 
     public static final long ONE_HOURS_EXPIRE = 1000*60*60;//单位毫秒，1小时
     public static final long FIVE_MINUTES_EXPIRE = 1000*60*5;//单位毫秒，5分钟
+    public static final long THREE_DAYS_EXPIRE = 1000L*60*60*24*3;//单位毫秒，3天
     public static final long THIRTY_DAYS_EXPIRE = 1000L*60*60*24*30;//单位毫秒，30天
 
     //@用户 超链接拼接常量
@@ -54,4 +55,5 @@ public class Constant {
     public static final String BLOG_AT_TOPIC_HYPERLINK_SUFFIX = "</a>";//（#话题#超链接后缀）
 
     public static final String BLOG_DELETE_PREFIX = "Delete";//（博客或评论删除时修改zset类型中的value值时添加的前缀）
+    public static final int ONLINE_TIME = 2;//单位：小时 （判断用户是否在线的时间间隔）
 }

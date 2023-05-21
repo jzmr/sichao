@@ -41,4 +41,9 @@ public interface UserClient {
     @Operation(summary = "根据用户id对其博客数-1(用于远程调用)")
     @PostMapping("/userService/user/userBlogCountMinusOne")
     public R userBlogCountMinusOne(@RequestParam("id") String id);
+
+    //获取用户关注列表(用于远程调用)
+    @Operation(summary = "获取用户关注列表")
+    @GetMapping("/userService/userFollow/getFollowingSetCache")
+    public R getFollowingSetCache(@RequestParam("userId") String userId);
 }

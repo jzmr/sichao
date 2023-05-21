@@ -25,4 +25,9 @@ public interface BlogService extends IService<Blog> {
     List<BlogVo> getBlogByTopicId(String userId, String topicId,int page,int limit);
     //分页查询指定话题id下的实时博客
     Map<String,Object> getRealTimeBlogByTopicId(String userId, String topicId, int start, int limit);
+    //查询用户博客
+    Map<String,Object> getUserBlog(String userId, String targetUserId, int start, int limit,long startTimestamp);
+    //查询我的关注用户的博客
+    List<BlogVo> getMyFeedBlog(String userId,int start, int limit);
+
 }
