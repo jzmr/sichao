@@ -107,15 +107,15 @@ public class BlogController {
 
     //查询我的关注用户的博客（使用redis缓存）（根据博客发布时间倒序）（并查询当前用户使用点赞该博客，未登录则默认未点赞）
     @Operation(summary = "分页查询我的关注用户的博客")
-    @GetMapping("/getMyFeedBlog/{start}/{limit}")
-    public R getMyFeedBlog(@PathVariable("start")int start,@PathVariable("limit")int limit){
+    @GetMapping("/getFollowingBlog/{start}/{limit}/{startTimestamp}")
+    public R getFollowingBlog(@PathVariable("start")int start,@PathVariable("limit")int limit,@PathVariable("startTimestamp") String startTimestamp){
         //threadLocal中无数据时说明未登录
         HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
-        if(map==null)return R.error().message("未登录");
+        if(map==null)return R.error().message("未登录,请登录后查看！");
 
-        List<BlogVo> blogList = blogService.getMyFeedBlog(map.get("userId"),start,limit);
+        Map<String,Object> blogMap = blogService.getFollowingBlog(map.get("userId"),start,limit,Long.parseLong(startTimestamp));
 
-//        if(blogMap == null)return R.ok().data("blogList",null);
-        return R.ok().data("blogList",blogList);
+        if(blogMap == null)return R.ok().data("blogList",null);
+        return R.ok().data("blogList",blogMap.get("blogVoList")).data("end",blogMap.get("end")).data("startTimestamp",blogMap.get("startTimestamp"));
     }
 }

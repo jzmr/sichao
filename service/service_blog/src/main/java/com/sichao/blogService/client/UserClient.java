@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.Set;
+
 /**
  * @Description: Feign远程接口
  * @author: sjc
@@ -46,4 +48,9 @@ public interface UserClient {
     @Operation(summary = "获取用户关注列表")
     @GetMapping("/userService/userFollow/getFollowingSetCache")
     public R getFollowingSetCache(@RequestParam("userId") String userId);
+
+    //获取用户粉丝列表(用于远程调用)
+    @Operation(summary = "获取用户粉丝列表")
+    @GetMapping("/userService/userFollow/getFollowerSetCache")
+    public R getFollowerSetCache(@RequestParam("userId") String userId);
 }

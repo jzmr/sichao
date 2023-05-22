@@ -29,6 +29,8 @@ public interface UserFollowService extends IService<UserFollow> {
     List<FollowListVo> getFollowerList(String currentId, String id);
     //查询当前用户关注的用户的昵称
     List<String> getFollowingNicknameList(String userId);
-    //获取用户关注列表的缓存
+    //获取用户关注列表
     Set<String> getFollowingSetCache(String userId);
+    //获取用户粉丝列表
+    Set<String> getFollowerSetCache(String userId);
 }

@@ -8,7 +8,9 @@ import jakarta.annotation.Resource;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
@@ -21,12 +23,18 @@ import java.util.HashMap;
  * @Description: 全局切面类：token续签切面、更新用户在线状态切面
  * @author: sjc
  * @createTime: 2023年04月30日 19:51
+ *
+ * 该切面放在公共模块下，而公共模块又被业务模块引入，所以该切面所有请求都生效，
+ * 所以这个切面放一些必须全局请求生效的处理方法
  */
 @Aspect//表明是一个切面类
 @Component//将当前切面类注入到Spring容器内
+@Order(2)//指定该切面在AOP链中的优先级
 public class OverallAspect {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     //切入点
     @Pointcut("execution(public * com.sichao.*.controller.*.*(..))")//任意模块的controller包下的任意方法
@@ -36,7 +44,7 @@ public class OverallAspect {
     public void doBefore(JoinPoint joinPoint){//更新用户在线状态，当时间戳+2小时小于当前时间就说明已离线
         //保存用户在线状态时，以当前时间的时间戳为分值，查询用户是否在线时，如果用户的时间戳+2小时小于当前时间，则说明表示离线
         ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//使用时间戳为分值来实现过期时间
-        String userOnlineKey = PrefixKeyConstant.USER_ONLINE_KEY;
+        String userOnlineKey = PrefixKeyConstant.USER_ONLINE_KEY;//用户在线列表key
 
         HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
         if(map!=null && map.get("userId")!=null) {//用户已登录、则更新用户最新在线时间

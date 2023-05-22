@@ -200,4 +200,19 @@ public class RabbitMQConfig {
                 null);
     }
 
+    //博客发布后续处理的队列
+    @Bean
+    public Queue blogPublishAfterQueue(){
+        return new Queue(RabbitMQConstant.BLOG_PUBLISH_AFTER_QUEUE,true,false,false);
+    }
+    //博客发布后续处理的队列绑定交换机
+    @Bean
+    public Binding blogPublishAfterQueueBinding(){
+        //给这个队列绑定交换机和路由，当生产者给这个交换机和路由发送消息时，会把消息发送给该队列
+        return new Binding(RabbitMQConstant.BLOG_PUBLISH_AFTER_QUEUE,
+                Binding.DestinationType.QUEUE,
+                RabbitMQConstant.BLOG_EXCHANGE,
+                RabbitMQConstant.BLOG_PUBLISH_AFTER_ROUTINGKEY,
+                null);
+    }
 }

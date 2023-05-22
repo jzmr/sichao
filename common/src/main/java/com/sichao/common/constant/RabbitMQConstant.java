@@ -19,4 +19,6 @@ public class RabbitMQConstant {
 
     public static final String BLOG_DELETE_QUEUE = "sichao.blog.delete.queue";//博客删除的队列
     public static final String BLOG_DELETE_ROUTINGKEY = "sichao.blog.delete";//博客删除的路由
+    public static final String BLOG_PUBLISH_AFTER_QUEUE = "sichao.blog.publish.after.queue";//博客发布后续处理的队列
+    public static final String BLOG_PUBLISH_AFTER_ROUTINGKEY = "sichao.blog.publish.after";//博客发布后续处理的路由
 }

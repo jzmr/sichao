@@ -21,6 +21,8 @@ public class PrefixKeyConstant {//项目名:业务名:类型:id
     public static final String USER_LIKE_COUNT_MODIFY_PREFIX = "sichao:user:likeCountModify:";//+用户id  （用户总获得点赞数变化数）
     public static final String USER_FOLLOWING_LIST_PREFIX = "sichao:user:followingList:";//+用户id  （用户关注列表）
     public static final String USER_FOLLOWING_LIST_LOCK_PREFIX = "sichao:user:followingListLock:";//+用户id   （用户关注列表锁）
+    public static final String USER_FOLLOWER_LIST_PREFIX = "sichao:user:followerList:";//+用户id  （用户粉丝列表）
+    public static final String USER_FOLLOWER_LIST_LOCK_PREFIX = "sichao:user:followerListLock:";//+用户id   （用户粉丝列表锁）
 
 
 
@@ -45,11 +47,10 @@ public class PrefixKeyConstant {//项目名:业务名:类型:id
     public static final String BLOG_REAL_TIME_BY_TOPIC_PREFIX = "sichao:blog:realTimeByTopic:";//+话题id     （话题下实时博客id）
     public static final String BLOG_COMMENT_LOCK_PREFIX = "sichao:blog:commentLock:";//+博客id   （博客下评论id查询锁）
     public static final String BLOG_COMMENT_PREFIX = "sichao:blog:comment:";//+博客id     （博客下评论id）
-    public static final String BLOG_USER_BLOG_LOCK_PREFIX = "sichao:blog:userBlogLock:";//+用户id   （用户的博客的id查询锁）
-    public static final String BLOG_USER_BLOG_PREFIX = "sichao:blog:userBlog:";//+用户id     （用户的博客id）
-    public static final String BLOG_FEED_LOCK_PREFIX = "sichao:blog:feedBlogLock:";//+用户id   （feed流收件箱锁：关注用户的博客的id查询锁）
-    public static final String BLOG_FEED_PREFIX = "sichao:blog:feedBlog:";//+用户id     （feed流收件箱：关注用户的博客id）
-
+    public static final String BLOG_USER_BLOG_LOCK_PREFIX = "sichao:blog:userBlogLock:";//+用户id   （feed流发件箱：用户的博客的id查询锁）
+    public static final String BLOG_USER_BLOG_PREFIX = "sichao:blog:userBlog:";//+用户id     （feed流发件箱：用户的博客id）
+    public static final String BLOG_FOLLOWING_BLOG_LOCK_PREFIX = "sichao:blog:followingBlogLock:";//+用户id   （feed流收件箱锁：关注用户的博客的id查询锁）
+    public static final String BLOG_FOLLOWING_BLOG_PREFIX = "sichao:blog:followingBlog:";//+用户id     （feed流收件箱：关注用户的博客id）
 
 
 

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.sichao.blogService.entity.vo.BlogVo;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -19,4 +20,6 @@ import java.util.List;
 public interface BlogMapper extends BaseMapper<Blog> {
     //查询博客vo信息
     BlogVo getBlogVoInfo(String blogId);
+    //查询用户关注的用户的博客(根据创建时间倒序查询前200条)
+    List<Blog> getFollowingBlog(String userId, LocalDateTime dateTime, int limit);
 }

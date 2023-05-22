@@ -7,4 +7,14 @@
         FROM blog b LEFT JOIN USER u ON b.creator_id = u.id
         WHERE b.id = #{blogId} AND b.is_deleted=0 AND u.is_deleted=0
     </select>
+    <!-- 查询用户关注的用户的博客(根据创建时间倒序查询前200条) -->
+    <select id="getFollowingBlog" resultType="com.sichao.blogService.entity.Blog">
+        SELECT b.id,b.create_time FROM user_follow uf
+        LEFT JOIN blog b ON uf.following_id = b.creator_id
+        WHERE uf.follower_id=#{userId} AND uf.`status`=1 AND uf.is_deleted=0 AND b.is_deleted=0 AND b.create_time &lt; #{dateTime}
+        ORDER BY b.create_time DESC
+        LIMIT #{limit}
+
+    </select>
+
 </mapper>

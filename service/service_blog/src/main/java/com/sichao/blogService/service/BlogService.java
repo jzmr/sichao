@@ -28,6 +28,6 @@ public interface BlogService extends IService<Blog> {
     //查询用户博客
     Map<String,Object> getUserBlog(String userId, String targetUserId, int start, int limit,long startTimestamp);
     //查询我的关注用户的博客
-    List<BlogVo> getMyFeedBlog(String userId,int start, int limit);
+    Map<String,Object> getFollowingBlog(String userId,int start, int limit,long startTimestamp);
 
 }

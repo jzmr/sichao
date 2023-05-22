@@ -133,6 +133,14 @@ public class UserFollowController {
         return R.ok().data("followingSet",followingSet);
     }
 
+    //获取用户粉丝列表(用于远程调用)
+    @Operation(summary = "获取用户粉丝列表")
+    @GetMapping("/getFollowerSetCache")
+    public R getFollowerSetCache(@RequestParam("userId") String userId){
+        Set<String> followerSet = userFollowService.getFollowerSetCache(userId);
+        return R.ok().data("followerSet",followerSet);
+    }
+
 
     // 查看用户关注量、粉丝量,
     // @自己的关注用户并发送通知。TODO

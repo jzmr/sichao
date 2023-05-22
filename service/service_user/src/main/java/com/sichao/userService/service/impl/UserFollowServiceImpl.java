@@ -59,16 +59,16 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
         QueryWrapper<UserFollow> wrapper = new QueryWrapper<>();
         wrapper.eq("follower_id",userId);
         wrapper.eq("following_id",followingId);
-        UserFollow one = baseMapper.selectOne(wrapper);
+        UserFollow follow = baseMapper.selectOne(wrapper);
         int isSuccess=0;
-        if(one!=null){//存在记录，修改状态
-            if(!one.getStatus()){//未关注,则修改状态未关注
-                one.setStatus(true);
-                one.setUpdateTime(null);//避免修改时间自动填充失效
-                isSuccess = baseMapper.updateById(one);//返回操作数据条目数：1
+        if(follow!=null){//存在记录，修改状态
+            if(!follow.getStatus()){//未关注,则修改状态未关注
+                follow.setStatus(true);
+                follow.setUpdateTime(null);//避免修改时间自动填充失效
+                isSuccess = baseMapper.updateById(follow);//返回操作数据条目数：1
             }
         }else {//不存在记录，插入数据
-            UserFollow follow = new UserFollow();
+            follow = new UserFollow();
             follow.setFollowerId(userId);
             follow.setFollowingId(followingId);
             isSuccess = baseMapper.insert(follow);//返回操作数据条目数：1
@@ -84,15 +84,26 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
             ops.increment(followingModifyKey);//自增，如果key不存在，则先创建整个key且值为0，而后再自增
             //被关注人的粉丝数+1
             ops.increment(followerModifyKey);
-            //将被关注人id加入关注列表缓存
+
+
             ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
-            String followingZSetKey = PrefixKeyConstant.USER_FOLLOWING_LIST_PREFIX + userId;//用户关注列表的key
-            LocalDateTime updateTime = one.getUpdateTime();//转换成Unix时间戳//以修改数据转换成时间戳
+            LocalDateTime updateTime = follow.getUpdateTime();//转换成Unix时间戳//以修改数据转换成时间戳
             long timestamp = updateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+            //将被关注人id加入关注列表缓存
+            String followingZSetKey = PrefixKeyConstant.USER_FOLLOWING_LIST_PREFIX + userId;//用户关注列表的key
             if(Boolean.FALSE.equals(stringRedisTemplate.hasKey(followingZSetKey))){//key不存在
-                getFollowingSetCache(userId);
+                getFollowingSetCache(userId);//查询关注列表
             }
             zSet.add(followingZSetKey,followingId,timestamp);
+            //将当前用户id加入被关注人的粉丝列表缓存
+            String followerZSetKey = PrefixKeyConstant.USER_FOLLOWER_LIST_PREFIX + followingId;//用户粉丝列表的key
+            if(Boolean.FALSE.equals(stringRedisTemplate.hasKey(followerZSetKey))){//key不存在
+                getFollowerSetCache(followingId);//查询粉丝列表
+            }
+            zSet.add(followerZSetKey,userId,timestamp);
+            //删除当前用户关注的用户的列表缓存
+            String followingBlogZSetKey = PrefixKeyConstant.BLOG_FOLLOWING_BLOG_PREFIX + userId;//当前用户关注的用户的博客id的key
+            stringRedisTemplate.delete(followingBlogZSetKey);
         }
     }
     @Transactional
@@ -131,6 +142,14 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
             if(Boolean.TRUE.equals(stringRedisTemplate.hasKey(followingZSetKey))){//key存在
                 zSet.remove(followingZSetKey,followingId);
             }
+            //将当前用户id从被关注人的粉丝列表缓存中删除
+            String followerZSetKey = PrefixKeyConstant.USER_FOLLOWER_LIST_PREFIX + followingId;//用户粉丝列表的key
+            if(Boolean.TRUE.equals(stringRedisTemplate.hasKey(followerZSetKey))){//key存在
+                zSet.remove(followerZSetKey,userId);
+            }
+            //删除当前用户关注的用户的列表缓存
+            String followingBlogZSetKey = PrefixKeyConstant.BLOG_FOLLOWING_BLOG_PREFIX + userId;//当前用户关注的用户的博客id的key
+            stringRedisTemplate.delete(followingBlogZSetKey);
         }
     }
 
@@ -181,7 +200,7 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
             try {//双查机制，在锁内再查一遍缓存中是否有数据
                 set = zSet.range(followingZSetKey, 0, -1);
                 if(set==null || set.isEmpty()) {//缓存不存在
-                    //查询博客下所有实时评论(根据创建时间升序查询)
+                    //查询当前用户的所有关注用户
                     QueryWrapper<UserFollow> wrapper = new QueryWrapper<>();
                     wrapper.eq("follower_id", userId);
                     wrapper.eq("status", 1);
@@ -209,6 +228,57 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
                                 TimeUnit.MILLISECONDS);
                     }
                     set = zSet.range(followingZSetKey, 0, -1);
+                }
+            }finally {
+                lock.unlock();//解锁
+            }
+        }
+        return set;
+    }
+
+    //获取用户粉丝列表（使用redis的zSet类型缓存）
+    @Override
+    public Set<String> getFollowerSetCache(String userId){
+        ZSetOperations<String, String> zSet = stringRedisTemplate.opsForZSet();//规定为以时间戳为分值插入数据
+        String followerZSetLockKey = PrefixKeyConstant.USER_FOLLOWER_LIST_LOCK_PREFIX + userId;//用户粉丝列表查询锁key
+        String followerZSetKey = PrefixKeyConstant.USER_FOLLOWER_LIST_PREFIX + userId;//用户粉丝列表的key
+
+        //查看缓存中是否有数据(-1表示到最后一个元素)
+        Set<String> set = zSet.range(followerZSetKey, 0, -1);
+        if(set==null || set.isEmpty()) {
+            RLock lock = redissonClient.getLock(followerZSetLockKey);
+            lock.lock();//加锁，阻塞
+            try {//双查机制，在锁内再查一遍缓存中是否有数据
+                set = zSet.range(followerZSetKey, 0, -1);
+                if(set==null || set.isEmpty()) {//缓存不存在
+                    //查询当前用户的所有粉丝用户
+                    QueryWrapper<UserFollow> wrapper = new QueryWrapper<>();
+                    wrapper.eq("following_id", userId);
+                    wrapper.eq("status", 1);
+                    wrapper.select("follower_id", "update_time");
+                    List<UserFollow> followList = baseMapper.selectList(wrapper);
+                    if (followList != null && !followList.isEmpty()) {
+                        for (UserFollow userFollow : followList) {
+                            //转换成Unix时间戳//以修改数据转换成时间戳
+                            LocalDateTime updateTime = userFollow.getUpdateTime();
+                            long timestamp = updateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+
+                            //将关注的用户的id保存到redis中的zSet类型中，使用时间戳自动排序
+                            zSet.add(followerZSetKey, userFollow.getFollowerId(), timestamp);
+                        }
+                        //为zSet的key设置生存时长
+                        stringRedisTemplate.expire(followerZSetKey,
+                                Constant.ONE_HOURS_EXPIRE + RandomSxpire.getRandomSxpire(),//1小时
+                                TimeUnit.MILLISECONDS);
+                    } else {
+                        //如果查询的数据为空，则向缓存中写入空串，并设置5分钟（短期）的过期时间（避免缓存穿透）
+                        zSet.add(followerZSetKey, "", 0);
+                        //为key设置生存时长
+                        stringRedisTemplate.expire(followerZSetKey,
+                                Constant.FIVE_MINUTES_EXPIRE + RandomSxpire.getMinRandomSxpire(),//5分钟
+                                TimeUnit.MILLISECONDS);
+                    }
+                    set = zSet.range(followerZSetKey, 0, -1);
                 }
             }finally {
                 lock.unlock();//解锁
