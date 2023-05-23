@@ -44,8 +44,8 @@ spring:
           uri: lb://service-oss #路由
           predicates: #断言
             - Path=/ossService/** #断言：路径相匹配的进行路由
-        - id: service-vod
-          uri: lb://service-vod #路由
+        - id: service-message
+          uri: lb://service-message #路由
           predicates: #断言
-            - Path=/vodService/** #断言：路径相匹配的进行路由
+            - Path=/messageService/** #断言：路径相匹配的进行路由
 

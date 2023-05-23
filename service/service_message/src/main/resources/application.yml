@@ -1,0 +1,94 @@
+server:
+  port: 11000 #服务端口
+spring:
+  application:
+    name: service-message #配置服务名
+  cloud:
+    nacos:
+      discovery:  #用于服务注册中心
+        server-addr: 127.0.0.1:8848 #配置nacos地址
+  #      config: #用于配置中心
+  #        server-addr: 127.0.0.1:8848 #配置nacos地址
+  datasource: #配置mysql数据源
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/sichao_blog?serverTimezone=GMT%2B8
+    username: root
+    password: 1234
+  data: #配置redis数据源
+    redis:
+      host: 127.0.0.1 #Redis服务器地址
+      port: 6379 #Redis服务器连接端口
+      database: 0 #Redis数据库索引（默认为0）
+      connect-timeout: 1800000 #连接超时时间
+      lettuce:
+        pool:
+          max-active: 20 #连接池最大连接数（使用负值表示没有限制）默认 8
+          max-wait: -1 #最大阻塞等待时间(负数表示没限制)默认 -1
+          max-idle: 5 #连接池中的最大空闲连接 默认 8
+          min-idle: 0 # 连接池中的最小空闲连接 默认 0
+  servlet:
+    multipart: #设置上传文件的大小限制(注意：在2.0设置，springBoot默认是2MB，但是一点几 MB的时候也可能会报错)
+      maxFileSize: 30MB
+      maxRequestSize: 30MB
+  #返回json的全局时间格式,设置返回给前端页面的时间格式
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  # RabbitMQ配置
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: / #虚拟主机
+    publisher-confirm-type: correlated #confirm机制:开启发送端消息抵达Broker确认
+    publisher-returns: true #return机制：开启发送端消息抵达Queue确认
+    template:
+      mandatory: true # 只要消息抵达Queue，就会异步发送优先回调returnfirm。代表如果消息丢失或者出现意外，将消息返回，而不是丢弃。
+    listener:
+      simple:
+        acknowledge-mode: manual # 手动ack消息，不使用默认的消费端确认。采用异步消费模式。
+
+#mybatis-plus相关
+mybatis-plus:
+  #Maven 多模块项目的扫描路径需以 classpath*: 开头 （即加载多个 jar 包下的 XML 文件）
+  #  mapper-locations: classpath:com/sichao/userService/mapper/xml/*.xml #配置mapper xml文件的路径
+  mapper-locations: classpath:com/sichao/*/mapper/xml/*.xml #配置mapper xml文件的路径(使用此配置‘*’就可以扫描到common模块下关于任务执行信息表的mapper)
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #mybatis日志
+  global-config:
+    db-config: #配置mybatis-plus的逻辑删除功能
+      logic-delete-field: isDeleted # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
+      logic-delete-value: 1 # 逻辑已删除值(默认为 1)
+      logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+
+
+  #比如在2.0设置，springBoot默认是2MB，但是一点几 MB的时候也可能会报错
+  #设置上传文件的大小限制，
+  #spring.servlet.multipart.maxFileSize=30MB
+  #
+  #spring.servlet.multipart.maxRequestSize=30M
+  #不做限制
+  #spring.servlet.multipart.maxFileSize=-1
+  #
+  #spring.servlet.multipart.maxRequestSize=-1
+
+#PageHelper分页插件相关配置
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+  support-methods-arguments: true
+  params: countSql
+
+#以下是openFeign相关
+#设置feign 客户端超时时间(OpenFeign 默认支持ribbon)(单位：毫秒)
+#ribbon:
+#  #指的是建立连接后从服务器读取到可用资源所用的时间
+#  ReadTimeout: 5000
+#  #指的是建立连接所用的时间，适用于网络状况正常的情况下,两端连接所用的时间
+#  ConnectTimeout: 5000
+
+#logging:
+#  level:
+#    # feign 日志以什么级别监控哪个接口
+#    com.atguigu.springcloud.service.PaymentFeignService: debug
