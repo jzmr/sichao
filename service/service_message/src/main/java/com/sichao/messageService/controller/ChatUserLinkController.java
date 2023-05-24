@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 2023-05-23
  */
 @RestController
-@RequestMapping("/userService/chatUserLink")
+@RequestMapping("/messageService/chatUserLink")
 public class ChatUserLinkController {
 
 }

@@ -1,5 +1,6 @@
 package com.sichao.messageService.entity.vo;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -37,9 +38,15 @@ public class ChatListVo {
     @Schema(description = "状态（0-发送方未删除列表 1-已删除）")
     private Boolean status;
 
-    @Schema(description = "创建时间")
-    private LocalDateTime createTime;
+    @Schema(description = "昵称(最少2位、最多8位)")
+    private String nickname;
+
+    @Schema(description = "头像url")
+    private String avatarUrl;
 
     @Schema(description = "最后一条消息内容")
     private String lastMessage;
+
+    @Schema(description = "最后一条消息的创建时间")
+    private LocalDateTime createTime;
 }

@@ -55,6 +55,6 @@ public class PrefixKeyConstant {//项目名:业务名:类型:id
 
 
     //消息模块
-    public static final String MESSAGE_WEBSOCKET_PREFIX = "sichao:message:webScoketSession:";//+用户id   （指定用户的webSocket会话）
+    public static final String MESSAGE_WEBSOCKET_PREFIX = "sichao:message:webScoketSession:";//+用户Id   （指定用户id的webSocket会话）
 
 }
