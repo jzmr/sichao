@@ -2,6 +2,9 @@ package com.sichao.messageService.controller;
 
 import com.alibaba.fastjson2.JSON;
 import com.sichao.common.constant.PrefixKeyConstant;
+import com.sichao.common.constant.RabbitMQConstant;
+import com.sichao.common.entity.MqMessage;
+import com.sichao.common.mapper.MqMessageMapper;
 import com.sichao.common.utils.JwtUtils;
 import com.sichao.common.utils.R;
 import com.sichao.messageService.entity.vo.ChatListVo;
@@ -9,12 +12,12 @@ import com.sichao.messageService.entity.vo.ChatMessageVo;
 import com.sichao.messageService.entity.vo.RequestMessage;
 import com.sichao.messageService.service.ChatMessageService;
 import com.sichao.messageService.service.ChatUserLinkService;
+import com.sichao.messageService.utils.ChatOnlineUserManager;
 import jakarta.websocket.OnOpen;
-import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.CloseStatus;
@@ -22,9 +25,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @Description: WebSocketHandler处理所有WebSocket消息
@@ -47,7 +48,11 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
-    private RedisTemplate<String,Object> redisTemplate;
+    private RabbitTemplate rabbitTemplate;
+    @Autowired
+    private ChatOnlineUserManager chatOnlineUserManager;
+    @Autowired
+    private MqMessageMapper mqMessageMapper;
     @Autowired
     private ChatUserLinkService chatUserLinkService;
     @Autowired
@@ -69,13 +74,46 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         String currentUserId = getUserIdBySessionToken(session);//当前用户id
         if(currentUserId == null)return;
         String targetUserId = requestMessage.getTargetUserId();//目标用户id
+        String content = requestMessage.getContent();//消息内容
+
+        //TODO 全局异常处理失效、token无自动续签
 
         // 2. 判断消息内容，去执行对应的方法
-        if("loadMessage".equals(messageContent)){//加载聊天记录
+        if("loadMessageList".equals(messageContent)){//加载聊天记录
             List<ChatMessageVo> chatMessageList = chatMessageService.loadMessage(currentUserId,targetUserId);
-
-            R r = R.ok().message("loadMessage").data("chatMessageList",chatMessageList);
+            R r = R.ok().message("loadMessageList").data("chatMessageList",chatMessageList);
             session.sendMessage(new TextMessage(JSON.toJSONBytes(r)));//给指定session的websocket的客户端发送响应消息
+        }else if("sendChatMessage".equals(messageContent)){//当前用户发送消息给目标用户
+            //保存消息,并返回该消息的vo对象
+            ChatMessageVo chatMessageVo = chatMessageService.sendChatMessage(currentUserId,targetUserId,content);
+            //将userId与message发送到队列中广播给使用订阅的消费者，该消费者中存放session的map集合有与userId一样的key时，向该session发送message
+            //获取两者用户的session, 并判断是否在线, 给在线的用户返回响应, 刷新聊天框
+            R r = R.ok().message("sendChatMessage").data("chatMessageVo",chatMessageVo);
+            //①向当前用户的websocket连接发送消息
+            session.sendMessage(new TextMessage(JSON.toJSONBytes(r)));//给指定session的websocket的客户端发送响应消息
+            //②向接收聊天消息的用户的websocket连接发送消息
+            if (chatOnlineUserManager.getState(targetUserId)!=null){//当前服务器（消费者）中存在该session
+                WebSocketSession targetSession = chatOnlineUserManager.getState(targetUserId);
+                targetSession.sendMessage(new TextMessage(JSON.toJSONBytes(r)));//给指定session的websocket的客户端发送响应消息
+            }else {//不存在该session，则发送rabbitMq广播所有订阅中的队列的消费者，寻找session并处理
+                String jsonString = JSON.toJSONString(r);
+                byte[] bytesR = JSON.toJSONBytes(r);
+                Map<String,Object> rabbitMqMap = new HashMap<>();
+                rabbitMqMap.put("userId",targetUserId);
+                rabbitMqMap.put("jsonString",jsonString);
+                //发送消息前先记录数据
+                String topicMapJson = JSON.toJSONString(rabbitMqMap);
+                MqMessage mqMessage = new MqMessage(topicMapJson, RabbitMQConstant.MESSAGE_EXCHANGE,RabbitMQConstant.MESSAGE_SEND_ROUTINGKEY,
+                        "Map<String,Object>",(byte)0);
+                mqMessageMapper.insert(mqMessage);
+
+                //指定路由，给交换机发送数据，并且携带数据标识
+                rabbitTemplate.convertAndSend(RabbitMQConstant.MESSAGE_EXCHANGE,RabbitMQConstant.MESSAGE_SEND_ROUTINGKEY,
+                        rabbitMqMap,new CorrelationData(mqMessage.getId()));//以mq消息表id作为数据标识
+
+            }
+
+
         }
 
 
@@ -91,22 +129,19 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         String userId = getUserIdBySessionToken(session);
         if(userId==null)return;
 
-        //使用redis的hash类型，已WebSocket会话id为key，已new一个sessionMap保存id与uri为value（WebSocketSession不能序列化，不能直接保存到redis中使用要有一个中转）
-        HashOperations<String, String, Object> forHash = redisTemplate.opsForHash();
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
         String messageWebsocketKey = PrefixKeyConstant.MESSAGE_WEBSOCKET_PREFIX+userId;//指定用户id的webSocket会话
 
-        //首先判断当前用户是否已经登录, 防止用户多开
-        if(forHash.get(messageWebsocketKey,"id") != null) {//redis中以存在该会话缓存
+        //redis缓存用来防止用户多开，chatOnlineUserManager中的map用来保存WebSocketSession
+        //首先判断当前用户是否已经与服务器建立连接, 使用reids缓存防止用户多开
+        if(ops.get(messageWebsocketKey) != null) {//redis中以存在该会话缓存
             R r = R.error().message("当前用户已经登录了, 不要重复登录");
             session.sendMessage(new TextMessage(JSON.toJSONBytes(r)));//给指定session的websocket的客户端发送响应消息
             return;
         }
-        //将session保存带redis中，表示用户的状态为在线(这里的在线指的是webscoker连接，而不是用户是否使用本系统)
-        //session:StandardWebSocketSession[id=b3dc5ac6-df31-ea71-2968-0698378bd58c, uri=ws://192.168.78.1:11000/messageService/ws]
-        Map<String, Object> sessionMap = new HashMap<>();
-        sessionMap.put("id", session.getId());
-        sessionMap.put("uri", session.getUri().toString());
-        forHash.putAll(messageWebsocketKey, sessionMap);//通过会话id与url就能还原出WebSocketSession
+        ops.set(messageWebsocketKey,session.getId());//将会话id缓存到redis中，表示该用户以与服务器建立连接，value该连接的会话id
+        chatOnlineUserManager.enterHall(userId,session);//将该session保存到map中
+
         //根据当前用户为接收用户，从数据库中查找所有与当前用户相关的聊天列表
         List<ChatListVo> chatList = chatUserLinkService.getCurrentUserChatList(userId);
         //设置响应类, 并添加对应的信息
@@ -120,8 +155,10 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         System.out.println("=========连接关闭后回调");
         String userId = getUserIdBySessionToken(session);
         if(userId==null)return;
+        //删除缓存与WebSocketSession信息
         String messageWebsocketKey = PrefixKeyConstant.MESSAGE_WEBSOCKET_PREFIX+userId;//指定用户id的webSocket会话
-        redisTemplate.delete(messageWebsocketKey);
+        stringRedisTemplate.delete(messageWebsocketKey);
+        chatOnlineUserManager.exitHall(userId);
     }
 
     //获取WebSocketSession中uri里面的token，然后根据token获取用户id

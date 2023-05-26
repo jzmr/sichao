@@ -69,4 +69,11 @@ public class ChatMessage implements Serializable {
     @Schema(description = "修改时间")
     @TableField(value = "update_time",fill = FieldFill.INSERT_UPDATE)//插入或修改数据时执行填充
     private LocalDateTime updateTime;
+
+    public ChatMessage(String linkId, String fromUserId, String toUserId, String content) {
+        this.linkId = linkId;
+        this.fromUserId = fromUserId;
+        this.toUserId = toUserId;
+        this.content = content;
+    }
 }

@@ -17,4 +17,6 @@ import java.util.List;
 public interface ChatMessageService extends IService<ChatMessage> {
     //加载聊天记录
     List<ChatMessageVo> loadMessage(String currentUserId, String targetUserId);
+    //当前用户发送消息给目标用户
+    ChatMessageVo sendChatMessage(String currentUserId, String targetUserId, String content);
 }

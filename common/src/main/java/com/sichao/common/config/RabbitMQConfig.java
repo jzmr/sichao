@@ -215,4 +215,26 @@ public class RabbitMQConfig {
                 RabbitMQConstant.BLOG_PUBLISH_AFTER_ROUTINGKEY,
                 null);
     }
+
+    //消息模块交换机
+    @Bean
+    public Exchange messageExchange() {
+        return new TopicExchange(RabbitMQConstant.MESSAGE_EXCHANGE, true, false);
+    }
+
+    //消息发送的队列
+    @Bean
+    public Queue messageSendQueue(){
+        return new Queue(RabbitMQConstant.MESSAGE_SEND_QUEUE,true,false,false);
+    }
+    //消息发送的路由
+    @Bean
+    public Binding messageSendQueueBinding(){
+        //给这个队列绑定交换机和路由，当生产者给这个交换机和路由发送消息时，会把消息发送给该队列
+        return new Binding(RabbitMQConstant.MESSAGE_SEND_QUEUE,
+                Binding.DestinationType.QUEUE,
+                RabbitMQConstant.MESSAGE_EXCHANGE,
+                RabbitMQConstant.MESSAGE_SEND_ROUTINGKEY,
+                null);
+    }
 }

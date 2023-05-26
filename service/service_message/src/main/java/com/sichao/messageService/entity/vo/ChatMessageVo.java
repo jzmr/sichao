@@ -1,7 +1,9 @@
 package com.sichao.messageService.entity.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -11,6 +13,8 @@ import java.time.LocalDateTime;
  * @createTime: 2023年05月24日 20:56
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Schema(name = "聊天信息vo", description = "聊天信息vo")
 public class ChatMessageVo {
     @Schema(description = "聊天内容详情id")
@@ -18,6 +22,9 @@ public class ChatMessageVo {
 
     @Schema(description = "发送方用户id")
     private String fromUserId;
+
+    @Schema(description = "接收方用户id")
+    private String toUserId;
 
     @Schema(description = "消息内容(最多500字)")
     private String content;
