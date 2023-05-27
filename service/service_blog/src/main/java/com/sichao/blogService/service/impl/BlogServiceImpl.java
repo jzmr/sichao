@@ -15,6 +15,7 @@ import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
 import com.sichao.common.constant.RabbitMQConstant;
 import com.sichao.common.entity.MqMessage;
+import com.sichao.common.entity.to.UserInfoTo;
 import com.sichao.common.exceptionhandler.sichaoException;
 import com.sichao.common.mapper.MqMessageMapper;
 import com.sichao.common.utils.R;
@@ -195,8 +196,18 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         //博客中@用户时
         if(!userIdList.isEmpty()){
             String blogId = blog.getId();//获取自动生成的id
+            //获取博客作者昵称
+            R r = userClient.getUserById(blog.getCreatorId());
+            String jsonString = JSON.toJSONString(r.getData().get("userInfoTo"));
+            UserInfoTo userInfoTo = JSON.parseObject(jsonString, UserInfoTo.class);
+            String blogCreatorNickname = userInfoTo.getNickname();
+            String blogContent = blog.getContent();
+            //构建map
             Map<String,Object> userMap=new HashMap<>();
             userMap.put("blogId",blogId);
+            userMap.put("blogContent",blogContent);
+            userMap.put("blogCreatorId",blog.getCreatorId());
+            userMap.put("blogCreatorNickname",blogCreatorNickname);
             userMap.put("userIdList",userIdList);
             //发送消息前先记录数据
             String userMapJson = JSON.toJSONString(userMap);
@@ -210,6 +221,17 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
 
         }
 
+    }
+
+    //根据博客id获取博客信息
+    @Override
+    public BlogVo getBlogByBlogId(String userId, String blogId) {
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+        String blogCommentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数前缀
+        String blogLikeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数前缀
+        //博客vo数据处理
+        BlogVo blogVo = blogVoHandle(userId, blogId, ops, blogCommentCountModifyPrefix, blogLikeCountModifyPrefix);
+        return blogVo;
     }
 
     //删除博客及其下的所有评论，以及点赞关系、话题关系、并自减各个数据

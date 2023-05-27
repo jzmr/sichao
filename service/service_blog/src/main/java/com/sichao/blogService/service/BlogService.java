@@ -19,6 +19,8 @@ import java.util.Map;
 public interface BlogService extends IService<Blog> {
     //发布博客
     void saveBlog(PublishBlogVo publishBlogVo);
+    //根据博客id获取博客信息
+    BlogVo getBlogByBlogId(String userId, String blogId);
     //删除博客及其下的所有评论，以及点赞关系、话题关系、并自减各个数据
     void deleteBlog(String userId, String blogId);
     //分页查询指定话题id下的博客

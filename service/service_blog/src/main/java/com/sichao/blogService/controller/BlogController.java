@@ -47,6 +47,19 @@ public class BlogController {
         return R.ok();
     }
 
+    //根据博客id获取博客信息（并查询当前用户使用点赞该博客，未登录则默认未点赞）
+    @Operation(summary = "根据博客id获取博客信息")
+    @GetMapping("/getBlogByBlogId/{blogId}")
+    public R getBlogByBlogId(@PathVariable("blogId") String blogId){
+        //threadLocal中无数据时说明未登录
+        HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
+        String userId=null;
+        if(map!=null)userId=map.get("userId");
+
+        BlogVo blogVo = blogService.getBlogByBlogId(userId,blogId);
+        return R.ok().data("blogVo",blogVo);
+    }
+
     //删除博客及其下的所有评论，以及点赞关系、话题关系、并自减各个数据
     @Operation(summary = "删除博客及其下的所有评论，以及点赞关系、话题关系、并自减各个数据")
     @DeleteMapping("/deleteBlog/{blogId}")

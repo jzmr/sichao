@@ -48,11 +48,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
-    private RabbitTemplate rabbitTemplate;
-    @Autowired
     private ChatOnlineUserManager chatOnlineUserManager;
-    @Autowired
-    private MqMessageMapper mqMessageMapper;
     @Autowired
     private ChatUserLinkService chatUserLinkService;
     @Autowired
@@ -62,11 +58,11 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 
 
     //连接成功之后，接收到消息调用的方法
-    //message:TextMessage payload=[1231231231..], byteCount=17, last=true]
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         System.out.println("=========接收到消息调用的方法");
         // 1. 解析请求的内容
+        // 例：message:TextMessage payload=[1231231231..], byteCount=17, last=true]
         String payload = message.getPayload();//获取有效荷载
         RequestMessage requestMessage = JSON.parseObject(payload, RequestMessage.class);
 
@@ -92,28 +88,12 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
             //①向当前用户的websocket连接发送消息
             session.sendMessage(new TextMessage(JSON.toJSONBytes(r)));//给指定session的websocket的客户端发送响应消息
             //②向接收聊天消息的用户的websocket连接发送消息
-            if (chatOnlineUserManager.getState(targetUserId)!=null){//当前服务器（消费者）中存在该session
-                WebSocketSession targetSession = chatOnlineUserManager.getState(targetUserId);
-                targetSession.sendMessage(new TextMessage(JSON.toJSONBytes(r)));//给指定session的websocket的客户端发送响应消息
-            }else {//不存在该session，则发送rabbitMq广播所有订阅中的队列的消费者，寻找session并处理
-                String jsonString = JSON.toJSONString(r);
-                byte[] bytesR = JSON.toJSONBytes(r);
-                Map<String,Object> rabbitMqMap = new HashMap<>();
-                rabbitMqMap.put("userId",targetUserId);
-                rabbitMqMap.put("jsonString",jsonString);
-                //发送消息前先记录数据
-                String topicMapJson = JSON.toJSONString(rabbitMqMap);
-                MqMessage mqMessage = new MqMessage(topicMapJson, RabbitMQConstant.MESSAGE_EXCHANGE,RabbitMQConstant.MESSAGE_SEND_ROUTINGKEY,
-                        "Map<String,Object>",(byte)0);
-                mqMessageMapper.insert(mqMessage);
-
-                //指定路由，给交换机发送数据，并且携带数据标识
-                rabbitTemplate.convertAndSend(RabbitMQConstant.MESSAGE_EXCHANGE,RabbitMQConstant.MESSAGE_SEND_ROUTINGKEY,
-                        rabbitMqMap,new CorrelationData(mqMessage.getId()));//以mq消息表id作为数据标识
-
-            }
-
-
+            chatMessageService.sendMessageByUserId(targetUserId,r);
+        }else if("getChatListItemAndMessage".equals(messageContent)){//查询聊天列表项及聊天消息列表
+            ChatListVo chatListVo = chatUserLinkService.getChatListItem(currentUserId,targetUserId);//查询聊天列表项(当前用户时接收方)
+            List<ChatMessageVo> chatMessageList = chatMessageService.loadMessage(currentUserId,targetUserId);
+            R r = R.ok().message("getChatListItemAndMessage").data("chatListVo",chatListVo).data("chatMessageList",chatMessageList);
+            session.sendMessage(new TextMessage(JSON.toJSONBytes(r)));//给指定session的websocket的客户端发送响应消息
         }
 
 

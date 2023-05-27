@@ -11,4 +11,11 @@
         WHERE cl.to_user_id = #{userId} AND cl.is_deleted=0 AND u.is_deleted=0
         ORDER BY create_time DESC
     </select>
+    <select id="getChatListItem" resultType="com.sichao.messageService.entity.vo.ChatListVo">
+        SELECT cl.id,cl.link_id,cl.from_user_id,cl.to_user_id,cl.unread_count,u.nickname,u.avatar_url,
+               (SELECT content FROM chat_message cm WHERE cl.link_id=cm.link_id AND cm.is_deleted=0 ORDER BY create_time DESC LIMIT 1) last_message,
+               (SELECT create_time FROM chat_message cm WHERE cl.link_id=cm.link_id AND cm.is_deleted=0 ORDER BY create_time DESC LIMIT 1) create_time
+        FROM chat_list cl LEFT JOIN `user` u ON u.id = cl.from_user_id
+        WHERE cl.from_user_id = #{fromUserId} AND cl.to_user_id = #{toUserId} AND cl.is_deleted=0 AND u.is_deleted=0
+    </select>
 </mapper>

@@ -25,4 +25,11 @@ public class ChatUserLinkServiceImpl extends ServiceImpl<ChatUserLinkMapper, Cha
         List<ChatListVo> chatListVoList = baseMapper.getCurrentUserChatList(userId);
         return chatListVoList;
     }
+
+    //查询聊天列表项(当前用户时接收方)
+    @Override
+    public ChatListVo getChatListItem(String currentUserId, String targetUserId) {
+        ChatListVo chatListVo = baseMapper.getChatListItem(targetUserId,currentUserId);
+        return chatListVo;
+    }
 }

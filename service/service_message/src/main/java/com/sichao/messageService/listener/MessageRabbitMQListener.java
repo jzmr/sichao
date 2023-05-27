@@ -6,6 +6,7 @@ import com.sichao.common.constant.RabbitMQConstant;
 import com.sichao.common.entity.MqMessage;
 import com.sichao.common.mapper.MqMessageMapper;
 import com.sichao.common.utils.R;
+import com.sichao.messageService.service.ChatMessageService;
 import com.sichao.messageService.utils.ChatOnlineUserManager;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -15,6 +16,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +30,8 @@ public class MessageRabbitMQListener {
     private MqMessageMapper mqMessageMapper;
     @Autowired
     private ChatOnlineUserManager chatOnlineUserManager;
+    @Autowired
+    private ChatMessageService chatMessageService;
 
     //监听队列,将userId与message发送到队列中广播给使用订阅的消费者，该消费者中存放session的map集合有与userId一样的key时，向该session发送message）
     //session在所有消费者中只在一个消费者中存在一份
@@ -65,4 +69,70 @@ public class MessageRabbitMQListener {
         }
     }
 
+    //监听队列,博客@用户
+    @RabbitListener(queues = RabbitMQConstant.BLOG_AT_USER_QUEUE)
+    public void blogAtUser(Message message, Map<String,Object> map, Channel channel){
+        String blogId = (String) map.get("blogId");
+        String blogContent = (String) map.get("blogContent");
+        String blogCreatorId = (String) map.get("blogCreatorId");
+        String blogCreatorNickname = (String) map.get("blogCreatorNickname");
+        List<String> userIdList = (List<String>) map.get("userIdList");
+        chatMessageService.blogAtUserHandele(blogId,blogContent,blogCreatorId,blogCreatorNickname,userIdList);
+
+
+        //能执行到这里了说明消息已经被消费，将消费信息持久化到MQ消息表
+        //获取携带的数据标识
+        String mqMessageId = (String) message.getMessageProperties().getHeaders().get("spring_returned_message_correlation");
+        MqMessage mqMessage = new MqMessage();
+        mqMessage.setId(mqMessageId);
+        mqMessage.setStatus((byte)3);//消息已被消费状态码
+        mqMessageMapper.updateById(mqMessage);
+
+        //如果这里之前发生异常，则之后不会签收货物，信息会被重新消费，所以消费数据时要做幂等性处理
+        //没有收到ACK消息，消费者断开连接后，RabbitMQ会把这条消息发送给其他消费者。
+        //如果没有其他消费者，消费者重启后会重新消费这条消息，重复执行业务逻辑。（消费者代码要有幂等性处理）
+
+        //投递标签：channel内按顺序自增
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        try {
+            //手动确认签收货物，非批量模式
+            channel.basicAck(deliveryTag,false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //监听队列,评论@用户
+    @RabbitListener(queues = RabbitMQConstant.BLOG_COMMENT_AT_USER_QUEUE)
+    public void commentAtUser(Message message, Map<String,Object> map, Channel channel){
+        String blogCommentId = (String) map.get("blogCommentId");
+        String blogId = (String) map.get("blogId");
+        String commentContent = (String) map.get("commentContent");
+        String commentCreatorId = (String) map.get("commentCreatorId");
+        String commentCreatorNickname = (String) map.get("commentCreatorNickname");
+        List<String> userIdList = (List<String>) map.get("userIdList");
+        chatMessageService.commentAtUserHandele(blogCommentId,blogId,commentContent,commentCreatorId,commentCreatorNickname,userIdList);
+
+
+        //能执行到这里了说明消息已经被消费，将消费信息持久化到MQ消息表
+        //获取携带的数据标识
+        String mqMessageId = (String) message.getMessageProperties().getHeaders().get("spring_returned_message_correlation");
+        MqMessage mqMessage = new MqMessage();
+        mqMessage.setId(mqMessageId);
+        mqMessage.setStatus((byte)3);//消息已被消费状态码
+        mqMessageMapper.updateById(mqMessage);
+
+        //如果这里之前发生异常，则之后不会签收货物，信息会被重新消费，所以消费数据时要做幂等性处理
+        //没有收到ACK消息，消费者断开连接后，RabbitMQ会把这条消息发送给其他消费者。
+        //如果没有其他消费者，消费者重启后会重新消费这条消息，重复执行业务逻辑。（消费者代码要有幂等性处理）
+
+        //投递标签：channel内按顺序自增
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        try {
+            //手动确认签收货物，非批量模式
+            channel.basicAck(deliveryTag,false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

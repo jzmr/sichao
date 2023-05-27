@@ -125,8 +125,20 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
         //RabbitMQ发送消息，异步实现对@用户的处理
         if(!userIdList.isEmpty()){
             String blogCommentId = blogComment.getId();//获取自动生成的id
+            //获取评论作者昵称
+            R r = userClient.getUserById(blogComment.getCreatorId());
+            String jsonString = JSON.toJSONString(r.getData().get("userInfoTo"));
+            UserInfoTo userInfoTo = JSON.parseObject(jsonString, UserInfoTo.class);
+            String commentCreatorNickname = userInfoTo.getNickname();
+            String commentContent = blogComment.getCommentContent();
+
+            //构建map
             Map<String,Object> userMap=new HashMap<>();
             userMap.put("blogCommentId",blogCommentId);
+            userMap.put("blogId",blogId);
+            userMap.put("commentContent",commentContent);
+            userMap.put("commentCreatorId",blogComment.getCreatorId());
+            userMap.put("commentCreatorNickname",commentCreatorNickname);
             userMap.put("userIdList",userIdList);
             //发送消息前先记录数据
             String userMapJson = JSON.toJSONString(userMap);

@@ -54,6 +54,13 @@ public class Constant {
     public static final String BLOG_AT_TOPIC_HYPERLINK_INFIX = "\" style=\"color:blue;\">";//+#话题title# （#话题#超链接中缀）
     public static final String BLOG_AT_TOPIC_HYPERLINK_SUFFIX = "</a>";//（#话题#超链接后缀）
 
+    //博客详情超链接拼接常量
+    //<a href="/blog/1231243512351431234" style="color:red;">(bbb)</a>
+    public static final String BLOG_DETAIL_HYPERLINK_PREFIX = "<a href=\"/blog/";//+博客id    （博客详情超链接前缀）
+    public static final String BLOG_DETAIL_HYPERLINK_INFIX = "\" style=\"color:red;\">";//+博客内容 （博客详情超链接中缀）
+    public static final String BLOG_DETAIL_HYPERLINK_SUFFIX = "</a>";//（博客详情超链接后缀）
+
+    public static final String BLOG_AT_USER_OFFICIAL_USER_ID = "1662351181822836737";//（官方的博客@助手的用户id）
     public static final String BLOG_DELETE_PREFIX = "Delete";//（博客或评论删除时修改zset类型中的value值时添加的前缀）
     public static final int ONLINE_TIME = 2;//单位：小时 （判断用户是否在线的时间间隔）
 }

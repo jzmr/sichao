@@ -18,4 +18,6 @@ public interface ChatUserLinkService extends IService<ChatUserLink> {
 
     // 根据当前用户为接收用户，从数据库中查找所有与当前用户相关的聊天列表
     List<ChatListVo> getCurrentUserChatList(String userId);
+    //查询聊天列表项(当前用户时接收方)
+    ChatListVo getChatListItem(String currentUserId, String targetUserId);
 }
