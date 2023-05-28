@@ -7,11 +7,15 @@ import com.sichao.blogService.entity.Blog;
 import com.sichao.blogService.service.BlogCommentService;
 import com.sichao.blogService.service.BlogLikeUserService;
 import com.sichao.blogService.service.BlogTopicRelationService;
+import com.sichao.common.constant.Constant;
 import com.sichao.common.constant.PrefixKeyConstant;
 import com.sichao.common.constant.RabbitMQConstant;
 import com.sichao.common.entity.MqMessage;
 import com.sichao.common.mapper.MqMessageMapper;
 import com.sichao.common.utils.R;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +43,8 @@ public class BlogRabbitMQListener {
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
     private UserClient userClient;
+    @Autowired
+    private RestHighLevelClient esClient;
     @Autowired
     private MqMessageMapper mqMessageMapper;
     @Autowired
@@ -114,7 +120,11 @@ public class BlogRabbitMQListener {
 
     //监听队列,博客发布后续处理
     @RabbitListener(queues = RabbitMQConstant.BLOG_PUBLISH_AFTER_QUEUE)
-    public void blogPublishAfter(Message message, String blogJson, Channel channel){
+    public void blogPublishAfter(Message message, Map<String,Object> map, Channel channel) throws IOException {
+        String blogJson = (String) map.get("blogJson");
+        String blogContent = (String) map.get("blogContent");
+        String blogCreatorNickname = (String) map.get("blogCreatorNickname");
+
         Blog blog = JSON.parseObject(blogJson, Blog.class);
         LocalDateTime createTime = blog.getCreateTime();//转换成Unix时间戳
         long timestamp = createTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
@@ -148,6 +158,12 @@ public class BlogRabbitMQListener {
                 }
             }
         }
+        //将博客的id、内容与作者昵称保存到elasticsearch中
+        IndexRequest request = new IndexRequest();//创建idnex请求
+        request.index(Constant.SICHAO_BLOG).id(blog.getId());//指定索引和插入的数据的主键id
+        request.source("id",blog.getId(),"content",blogContent,"creatorNickname",blogCreatorNickname);//插入数据
+        esClient.index(request, RequestOptions.DEFAULT);//执行插入数据到es的请求
+
 
         //能执行到这里了说明消息已经被消费，将消费信息持久化到MQ消息表
         //获取携带的数据标识

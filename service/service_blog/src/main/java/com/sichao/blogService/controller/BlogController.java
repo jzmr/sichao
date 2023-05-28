@@ -1,11 +1,7 @@
 package com.sichao.blogService.controller;
 
-import com.github.pagehelper.PageHelper;
-import com.github.pagehelper.PageInfo;
-import com.sichao.blogService.entity.Blog;
 import com.sichao.blogService.entity.vo.BlogVo;
 import com.sichao.blogService.entity.vo.PublishBlogVo;
-import com.sichao.blogService.entity.vo.PublishTopicVo;
 import com.sichao.blogService.service.BlogService;
 import com.sichao.common.interceptor.TokenRefreshInterceptor;
 import com.sichao.common.utils.R;
@@ -14,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,4 +128,26 @@ public class BlogController {
         if(blogMap == null)return R.ok().data("blogList",null);
         return R.ok().data("blogList",blogMap.get("blogVoList")).data("end",blogMap.get("end")).data("startTimestamp",blogMap.get("startTimestamp"));
     }
+
+    //根据关键字全文检索博客（使用ElasticSearch）
+    @Operation(summary = "根据关键字全文检索博客")
+    @GetMapping("/getBlogByKeyword/{keyword}")
+    public R getBlogByKeyword(@PathVariable("keyword") String keyword) throws IOException {
+        //threadLocal中无数据时说明未登录
+        HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
+        String userId=null;
+        if(map!=null)userId=map.get("userId");
+
+        List<BlogVo> blogList = blogService.getBlogByKeyword(userId,keyword);
+        return R.ok().data("blogList",blogList);
+    }
+
+    //将博客加载到es当中（并未被前端使用，只是用来测试）
+    @Operation(summary = "全文检索博客")
+    @GetMapping("/loadBLogIntoES")
+    public R loadBLogIntoES() throws IOException {
+        blogService.loadBLogIntoES();
+        return R.ok();
+    }
+
 }

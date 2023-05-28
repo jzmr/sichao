@@ -63,4 +63,5 @@ public class Constant {
     public static final String BLOG_AT_USER_OFFICIAL_USER_ID = "1662351181822836737";//（官方的博客@助手的用户id）
     public static final String BLOG_DELETE_PREFIX = "Delete";//（博客或评论删除时修改zset类型中的value值时添加的前缀）
     public static final int ONLINE_TIME = 2;//单位：小时 （判断用户是否在线的时间间隔）
+    public static final String SICHAO_BLOG = "sichao_blog";
 }

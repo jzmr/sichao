@@ -20,6 +20,18 @@ import com.sichao.common.exceptionhandler.sichaoException;
 import com.sichao.common.mapper.MqMessageMapper;
 import com.sichao.common.utils.R;
 import com.sichao.common.utils.RandomSxpire;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -31,6 +43,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -60,6 +73,8 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
     private RedissonClient redissonClient;
+    @Autowired
+    private RestHighLevelClient esClient;
     @Autowired
     private BlogLikeUserService blogLikeUserService;
     @Autowired
@@ -158,19 +173,30 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         blog.setContent(strb.toString());//拼接了超链接的博客内容
         int insert = baseMapper.insert(blog);
 
+        //获取博客作者昵称
+        R r = userClient.getUserById(blog.getCreatorId());
+        String jsonString = JSON.toJSONString(r.getData().get("userInfoTo"));
+        UserInfoTo userInfoTo = JSON.parseObject(jsonString, UserInfoTo.class);
+        String blogCreatorNickname = userInfoTo.getNickname();
+
 
         //RabbitMQ发送消息，异步实现发布博客后续处理与对@用户与#话题#的处理
         //保存博客成功时
         if(insert==1){
-            //发送消息前先记录数据
             String blogJson = JSON.toJSONString(blog);
+            //构建map
+            Map<String,Object> blogMap=new HashMap<>();
+            blogMap.put("blogJson",blogJson);
+            blogMap.put("blogContent",publishBlogVo.getContent());
+            blogMap.put("blogCreatorNickname",blogCreatorNickname);
+            //发送消息前先记录数据
             MqMessage topicMqMessage = new MqMessage(blogJson,RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_PUBLISH_AFTER_ROUTINGKEY,
-                    "Blog",(byte)0);
+                    "Map<String,Object>",(byte)0);
             mqMessageMapper.insert(topicMqMessage);
 
             //指定路由，给交换机发送数据，并且携带数据标识
             rabbitTemplate.convertAndSend(RabbitMQConstant.BLOG_EXCHANGE,RabbitMQConstant.BLOG_PUBLISH_AFTER_ROUTINGKEY,
-                    blogJson,new CorrelationData(topicMqMessage.getId()));//以mq消息表id作为数据标识
+                    blogMap,new CorrelationData(topicMqMessage.getId()));//以mq消息表id作为数据标识
         }
 
         //博客中有#话题#时
@@ -196,11 +222,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         //博客中@用户时
         if(!userIdList.isEmpty()){
             String blogId = blog.getId();//获取自动生成的id
-            //获取博客作者昵称
-            R r = userClient.getUserById(blog.getCreatorId());
-            String jsonString = JSON.toJSONString(r.getData().get("userInfoTo"));
-            UserInfoTo userInfoTo = JSON.parseObject(jsonString, UserInfoTo.class);
-            String blogCreatorNickname = userInfoTo.getNickname();
             String blogContent = blog.getContent();
             //构建map
             Map<String,Object> userMap=new HashMap<>();
@@ -713,6 +734,72 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         return map;
     }
 
+    //根据关键字全文检索博客
+    @Override
+    public List<BlogVo> getBlogByKeyword(String userId, String keyword) throws IOException {
+        //创建检索请求
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.indices(Constant.SICHAO_BLOG);//指定索引
+        //指定DSL，检索条件
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        //构造检索条件
+        builder.query(QueryBuilders.multiMatchQuery(keyword,"content","creatorNickname"));//多字段匹配关键字
+        builder.from(0);//分页起始位置
+        builder.size(30);//每页数据数
+        //将查询资源器放入请求中
+        searchRequest.source(builder);
+        //执行检索
+        SearchResponse response = esClient.search(searchRequest, RequestOptions.DEFAULT);
+
+        //获取检索到的数据
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+        String blogCommentCountModifyPrefix = PrefixKeyConstant.BLOG_COMMENT_COUNT_MODIFY_PREFIX;//博客评论数前缀
+        String blogLikeCountModifyPrefix = PrefixKeyConstant.BLOG_LIKE_COUNT_MODIFY_PREFIX;//博客点赞数前缀
+        List<BlogVo> blogList = new ArrayList<>();
+        SearchHits hits = response.getHits();
+        SearchHit[] searchHits = hits.getHits();
+        for (SearchHit searchHit : searchHits) {
+            String source = searchHit.getSourceAsString();
+            BlogVo blogVo = JSON.parseObject(source, BlogVo.class);
+            blogVo = blogVoHandle(userId, blogVo.getId(), ops, blogCommentCountModifyPrefix, blogLikeCountModifyPrefix);
+            if(blogVo != null) {
+                blogList.add(blogVo);//将查询的博客vo加入集合
+            }
+        }
+        return blogList;
+    }
+
+    //将博客加载到es当中
+    @Override
+    public void loadBLogIntoES() {
+        //查询出所有博客数据
+        List<Blog> blogList = baseMapper.selectList(null);
+
+        //批量插入数据到es中
+        BulkRequest request = new BulkRequest();
+        for (Blog blog : blogList) {
+            //查询博客vo信息
+            BlogVo blogVo = getBLogVoInfo(blog.getId());
+            //处理每条博客的超连接内容
+            StringBuilder content = new StringBuilder(blog.getContent());
+            while (content.indexOf("<a href=\"/")!=-1){
+                content.delete(content.indexOf("<a href=\"/"),content.indexOf(";\">")+3);
+                content.delete(content.indexOf("</a>"),content.indexOf("</a>")+4);
+            }
+            //将插入数据的请求放进批量处理的请求中
+            request.add(new IndexRequest().index(Constant.SICHAO_BLOG).id(blog.getId())
+                    .source(XContentType.JSON,"id",blogVo.getId(),"content",content.toString(),"creatorNickname",blogVo.getNickname()));
+        }
+
+        //执行批量插入数据请求
+        BulkResponse response = null;
+        try {
+            response = esClient.bulk(request, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     //获取博客vo信息（使用redis的String类型缓存）
     public BlogVo getBLogVoInfo(String blogId){
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
@@ -757,7 +844,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
     }
 
     /**
-     * 查询博客时的处理方法
+     * 查询博客时的处理方法(包含了获取博客vo信息)
      * @param userId 当前用户id
      * @param blogId 博客id
      * @param ops    redis的string类型处理对象
@@ -771,6 +858,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             return null;//此时不拿数据
         }
 
+        //获取博客vo信息
         BlogVo blogVo = getBLogVoInfo(blogId);
         if(blogVo==null){
             return null;

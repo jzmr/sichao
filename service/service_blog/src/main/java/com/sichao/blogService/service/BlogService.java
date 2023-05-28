@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.sichao.blogService.entity.vo.BlogVo;
 import com.sichao.blogService.entity.vo.PublishBlogVo;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -31,5 +32,8 @@ public interface BlogService extends IService<Blog> {
     Map<String,Object> getUserBlog(String userId, String targetUserId, int start, int limit,long startTimestamp);
     //查询我的关注用户的博客
     Map<String,Object> getFollowingBlog(String userId,int start, int limit,long startTimestamp);
-
+    //根据关键字全文检索博客
+    List<BlogVo> getBlogByKeyword(String userId, String keyword) throws IOException;
+    //将博客加载到es当中
+    void loadBLogIntoES();
 }

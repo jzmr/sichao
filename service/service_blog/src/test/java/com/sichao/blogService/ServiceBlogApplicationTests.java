@@ -2,11 +2,20 @@ package com.sichao.blogService;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.sichao.blogService.entity.Blog;
 import com.sichao.blogService.entity.BlogTopic;
+import com.sichao.blogService.entity.vo.BlogVo;
 import com.sichao.blogService.entity.vo.TopicTitleVo;
+import com.sichao.blogService.mapper.BlogMapper;
 import com.sichao.blogService.mapper.BlogTopicMapper;
-import com.sichao.common.constant.Constant;
+import com.sichao.blogService.service.impl.BlogServiceImpl;
 import com.sichao.common.constant.PrefixKeyConstant;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,20 +24,20 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.Period;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 class ServiceBlogApplicationTests {
     @Autowired
-    private BlogTopicMapper blogTopicMapper;
+    private RestHighLevelClient esClient;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private BlogTopicMapper blogTopicMapper;
 
     @Test
     void contextLoads() {
@@ -147,6 +156,5 @@ class ServiceBlogApplicationTests {
 //        strb.append(msg.substring(idx));
 //        System.out.println(strb);
 //    }
-
 
 }

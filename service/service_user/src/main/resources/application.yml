@@ -34,7 +34,7 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
-    # RabbitMQ配置
+  # RabbitMQ配置
   rabbitmq:
     host: localhost
     port: 5672
@@ -47,12 +47,11 @@ spring:
       mandatory: true # 只要消息抵达Queue，就会异步发送优先回调returnfirm。代表如果消息丢失或者出现意外，将消息返回，而不是丢弃。
     listener:
       simple:
-        acknowledge-mode: manual # 手动ack消息，不使用默认的消费端确认
-
+        acknowledge-mode: manual # 手动ack消息，不使用默认的消费端确认。采用异步消费模式。
 #mybatis-plus相关
 mybatis-plus:
   #Maven 多模块项目的扫描路径需以 classpath*: 开头 （即加载多个 jar 包下的 XML 文件）
-#  mapper-locations: classpath:com/sichao/userService/mapper/xml/*.xml #配置mapper xml文件的路径
+  #mapper-locations: classpath:com/sichao/userService/mapper/xml/*.xml #配置mapper xml文件的路径
   mapper-locations: classpath:com/sichao/*/mapper/xml/*.xml #配置mapper xml文件的路径(使用此配置‘*’就可以扫描到common模块下关于任务执行信息表的mapper)
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #mybatis日志
