@@ -67,7 +67,7 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
     @Autowired
     private BlogService blogService;
 
-    //发布评论(博客下评论、父评论) TODO 将评论加入缓存
+    //发布评论(博客下评论、父评论)
     @Transactional
     @Override
     public void saveComment(String curUserId, String blogId, String content) {
@@ -93,7 +93,6 @@ public class BlogCommentServiceImpl extends ServiceImpl<BlogCommentMapper, BlogC
             String origion_str_user = matchr_user.group();//获取匹配到的字符串
             String userStr = origion_str_user.substring(1, origion_str_user.length()).trim();//裁剪
 
-            //TODO 这里的循环查库优化？
             R r = (R) userClient.getUserIdByNickname(userStr);//远程调用查询用户id
             String userId = (String) r.getData().get("userId");
 

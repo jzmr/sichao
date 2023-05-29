@@ -42,7 +42,7 @@ public class BlogTopicRelationServiceImpl extends ServiceImpl<BlogTopicRelationM
         QueryWrapper<BlogTopicRelation> wrapper = new QueryWrapper<>();
         BlogTopicRelation blogTopicRelation=null;
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
-        //TODO 循环查库了
+
         for (String topicId : topicIdList) {
             wrapper.eq("topic_id",topicId);
             wrapper.eq("blog_id",blogId);

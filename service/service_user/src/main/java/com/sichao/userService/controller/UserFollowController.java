@@ -113,9 +113,9 @@ public class UserFollowController {
         return R.ok().data("followerList",followerList).data("pageInfo",pageInfo);
     }
 
-    //查询当前用户关注的用户的昵称 TODO 可以做成互动多的或者最近获得的用户向查出来
+    //查询当前用户关注的用户的昵称
     @Operation(summary = "分页查询当前用户关注的用户的昵称")
-    @GetMapping("/getFollowingNicknameList/{page}/{limit}")//TODO 可以改成通过搜索模糊查询
+    @GetMapping("/getFollowingNicknameList/{page}/{limit}")
     public R getFollowingNicknameList(@PathVariable("page") int page,@PathVariable("limit") int limit){
         //threadLocal中无数据时说明未登录
         HashMap<String, String> map = TokenRefreshInterceptor.threadLocal.get();
@@ -140,9 +140,4 @@ public class UserFollowController {
         Set<String> followerSet = userFollowService.getFollowerSetCache(userId);
         return R.ok().data("followerSet",followerSet);
     }
-
-
-    // 查看用户关注量、粉丝量,
-    // @自己的关注用户并发送通知。TODO
-
 }

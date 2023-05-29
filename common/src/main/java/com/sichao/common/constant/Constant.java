@@ -31,9 +31,8 @@ public class Constant {
     public static final long ACCESS_TOKEN_EXPIRE = 1000 * 60 * 60 * 24;//单为毫秒，1天
     public static final long REFRESH_TOKEN_EXPIRE = 1000 * 60 * 60 * 24 * 5;//单位毫秒，5天
 
-    //TODO 应该根据配置文件数据注入到这里
     public static final String TOKEN_SECRET_KEY = "ukc8BDbRigUDaY6pZFfWus2jZWLPHO";//token秘钥（每个公司都会各自生成不同的秘钥）
-    public static final long TOKEN_SECRET_KEY_DAY_PREFIX = 1000 * 60 * 60 * 24 * 15;//token秘钥前缀过期时间 TODO
+    public static final long TOKEN_SECRET_KEY_DAY_PREFIX = 1000 * 60 * 60 * 24 * 15;//token秘钥前缀过期时间
 
 
     public static final long ONE_HOURS_EXPIRE = 1000*60*60;//单位毫秒，1小时

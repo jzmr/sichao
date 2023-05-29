@@ -1,4 +1,4 @@
-package com.sichao.common.config;
+package com.sichao.blogService.config;
 
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RequestOptions;

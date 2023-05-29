@@ -61,14 +61,6 @@ mybatis-plus:
       logic-delete-value: 1 # 逻辑已删除值(默认为 1)
       logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
 
-
-#为登录相关（尚硅谷提供的用于测试的二维码的使用）
-wx:
-  open:
-    app_id: wxed9954c01bb89b47 # 微信开放平台 appid
-    app_secret: a7482517235173ddb4083788de60b90e # 微信开放平台 appsecret
-    redirect_url: http://guli.shop/api/ucenter/wx/callback # 微信开放平台 重定向url
-
   #比如在2.0设置，springBoot默认是2MB，但是一点几 MB的时候也可能会报错
   #设置上传文件的大小限制，
   #spring.servlet.multipart.maxFileSize=30MB

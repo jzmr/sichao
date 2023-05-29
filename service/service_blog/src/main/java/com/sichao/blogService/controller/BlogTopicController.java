@@ -58,9 +58,7 @@ public class BlogTopicController {
         TopicInfoVo topicInfo =blogTopicService.getTopicInfo(topicId);
         return R.ok().data("topicInfo",topicInfo);
     }
-    //TODO
     //修改某个话题的信息
-
     //给某个话题增加热度（权重）
 
     //禁用话题

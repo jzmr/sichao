@@ -152,7 +152,7 @@ public class BlogTopicServiceImpl extends ServiceImpl<BlogTopicMapper, BlogTopic
 
         //计算热度
         BlogTopic topic = baseMapper.selectById(id);
-        //总讨论数 TODO 要加上缓存中的讨论数修改数
+        //总讨论数
         int totalDiscussion = topic.getTotalDiscussion();
         //相差小时数=当前时间 - 创建时间
         LocalDateTime createTime = topic.getCreateTime();

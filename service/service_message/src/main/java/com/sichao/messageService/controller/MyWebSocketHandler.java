@@ -72,8 +72,6 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         String targetUserId = requestMessage.getTargetUserId();//目标用户id
         String content = requestMessage.getContent();//消息内容
 
-        //TODO 全局异常处理失效、token无自动续签
-
         // 2. 判断消息内容，去执行对应的方法
         if("loadMessageList".equals(messageContent)){//加载聊天记录
             List<ChatMessageVo> chatMessageList = chatMessageService.loadMessage(currentUserId,targetUserId);

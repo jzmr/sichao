@@ -83,6 +83,6 @@ aliyun:
   oss:
     file:
       endpoint: oss-cn-guangzhou.aliyuncs.com #Oss服务器节点，地址不同
-      keyid: LTAI5tL4rgDXDzTMNmqGupwk #阿里的RAM访问控制的AccessKeyId
-      keysecret: IwZjDffhUpLY4ttMzcSD71Ob9Q1biJ #阿里的RAM访问控制的AccessKeySecret
+      keyid: xxxxxxxxxxxxxxxxxxxxxxx #阿里的RAM访问控制的AccessKeyId
+      keysecret: xxxxxxxxxxxxxxxxxxxxxxxxx #阿里的RAM访问控制的AccessKeySecret
       buckername: sichao-blog #ducker名（bucket可以在控制台创建，也可以使用java代码创建）

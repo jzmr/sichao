@@ -106,7 +106,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             String origion_str_user = matchr_user.group();//获取匹配到的字符串
             String userStr = origion_str_user.substring(1, origion_str_user.length()).trim();//裁剪
 
-            //TODO 这里的循环查库优化？
             R r = (R) userClient.getUserIdByNickname(userStr);//远程调用查询用户id
             String userId = (String) r.getData().get("userId");
 
@@ -143,7 +142,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
             String origion_str_topic = matchr_topic.group();//获取匹配到的字符串
             String topicStr = origion_str_topic.substring(2, origion_str_topic.length()-2).trim();//裁剪
 
-            //TODO 这里的循环查库优化？抽取变量？
             QueryWrapper<BlogTopic> wrapperTopic = new QueryWrapper<>();
             wrapperTopic.eq("topic_title",topicStr);
             BlogTopic blogTopic = blogTopicService.getOne(wrapperTopic);//查询话题id
@@ -297,8 +295,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements Bl
         if(size !=null && size != 0 && ((page-1L)*limit >= size)){
             return null;//此时查询的条数超过总博客数，直接返回null
         }
-
-        //TODO 更新逻辑不好，热度实时计算逻辑也不好
+        
         //根据分值降序分页查询指定的博客//如果无这个key，则这句代码查询到的会使一个空的set集合
         Set<String> set = zSet.reverseRange(blogZSetKey, (long) (page - 1) *limit, (long) page *limit-1);
         if(set==null || set.isEmpty()){
