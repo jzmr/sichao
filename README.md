@@ -24,8 +24,7 @@
 注册、登录 、根据token信息获取用户信息（密码除外）、注销、修改密码
 
 根据用户id查看用户信息（密码除外）、修改头像url、修改用户个人信息（头像、密码除外）
-![图片](https://github.com/jzmr/sichao_parent/assets/81701868/64528ffe-3437-4253-ac83-273a52e9443c)
-
+![图片](https://github.com/jzmr/sichao_parent/assets/81701868/80f465bb-905e-4954-bccd-1eaef28ec712)
 
 ##### 2. 用户关注
 
@@ -34,15 +33,14 @@
 分页倒序查看用户关注列表、分页倒序查看用户粉丝列表
 
 查询当前用户关注的用户昵称列表、获取用户关注列表、获取用户粉丝列表
-![图片](https://github.com/jzmr/sichao_parent/assets/81701868/3d9dfda5-2b05-43bd-bce3-a1c6b8b0ca1c)
-
+![图片](https://github.com/jzmr/sichao_parent/assets/81701868/b8773067-d59c-46db-bc25-57c41353eae7)
 
 ### 话题与博客模块
 
 ##### 1.话题模块
 
 发布话题、查询热门话题（热搜榜）、获取某个话题的信息
-![图片](https://github.com/jzmr/sichao_parent/assets/81701868/831556e0-b1ae-42a0-b4c4-f3a7bab58ac2)
+![图片](https://github.com/jzmr/sichao_parent/assets/81701868/ff9e802d-be1a-422a-af2a-2133042f08db)
 
 ##### 2.博客模块
 
@@ -53,16 +51,14 @@
 发布评论、删除评论、分页查询指定博客id下的评论（升序或降序）
 
 点赞博客、取消点赞博客
-![图片](https://github.com/jzmr/sichao_parent/assets/81701868/e365e3c1-4cf7-42e2-bd37-c31cade3f3a1)
-![图片](https://github.com/jzmr/sichao_parent/assets/81701868/1301c03d-ee63-4db4-b07f-bc8bb78c9f5f)
-
+![图片](https://github.com/jzmr/sichao_parent/assets/81701868/74ac98a0-2bad-41de-9187-b2c4980afe16)
+![图片](https://github.com/jzmr/sichao_parent/assets/81701868/1dfb1fca-323a-43a1-9540-91ee0c4ea041)
 
 ### 私信博客
 
 加载用户聊天列表、加载聊天记录、当前用户发送消息给目标用户、查询聊天列表项及聊天消息列表
-![图片](https://github.com/jzmr/sichao_parent/assets/81701868/096028fb-bcb9-432c-bfb7-52e3d0c3e8dc)
-![图片](https://github.com/jzmr/sichao_parent/assets/81701868/c4cb6cf9-ceb8-4b9c-9e90-a0a0da88a32a)
-
+![图片](https://github.com/jzmr/sichao_parent/assets/81701868/330ba3e0-68c1-4796-98b5-cc360acbbed7)
+![图片](https://github.com/jzmr/sichao_parent/assets/81701868/0c0f1e93-5596-43eb-a52c-62bc128de746)
 
 ### OSS模块
 
