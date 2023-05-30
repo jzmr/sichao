@@ -1,4 +1,4 @@
-# sichao_parent
+# 思潮博客
 主要模块：用户模块、话题模块、博客模块、私信博客、OSS模块
 
 使用技术：springBoot、mybatis-plus、springCloud、MySQL、Redis、rabbitMQ、Elasticsearch、webSocket、JWT
