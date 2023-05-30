@@ -32,8 +32,8 @@ import java.util.Map;
 public class BlogCommentController {
     @Autowired
     private BlogCommentService blogCommentService;
-    //发布评论(博客下评论、父评论)
-    @Operation(summary = "发布评论(博客下评论、父评论)")
+    //发布评论
+    @Operation(summary = "发布评论")
     @PostMapping("/saveComment")
     public R saveComment(@RequestBody PublishCommentVo publishCommentVo){
         //threadLocal中无数据时说明未登录

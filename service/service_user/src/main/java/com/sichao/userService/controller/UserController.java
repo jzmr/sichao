@@ -81,7 +81,6 @@ public class UserController {
         boolean result=userService.userIsDisabled(userId);
         return R.ok().data("result",result);
     }
-    //都要考虑幂等性 TODO
     //修改密码
     @Operation(summary = "修改密码")
     @PostMapping("/updatePassword")
@@ -102,7 +101,7 @@ public class UserController {
     }
 
     //修改头像url,用来被OSS模块远程调用，其传过来一个图片上传返回的地址，这个方法将该地址持久化到用户表中
-    //远程调用时，请求中是不用有token的，不能在这里通过threadLocal线程变量去拿当前用户id
+    //远程调用时，请求中是没有token的，不能在这里通过threadLocal线程变量去拿当前用户id，所以需要调用方传入用户id
     @Operation(summary = "修改头像Url")
     @PostMapping("/updateAvatarUrl")
     public R updateAvatarUrl(String userId,String avatarUrl){
