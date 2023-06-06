@@ -21,9 +21,6 @@ public class UpdateInfoVo {
     @Schema(description = "性别：0-男 1-女 2-未知")
     private Byte gender;
 
-    @Schema(description = "年龄")
-    private Byte age;
-
     @Schema(description = "个人签名(最多255个字符)")
     private String sign;
 

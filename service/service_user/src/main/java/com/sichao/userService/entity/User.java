@@ -49,10 +49,6 @@ public class User implements Serializable {
     @TableField("gender")
     private Byte gender;
 
-    @Schema(description = "年龄")
-    @TableField("age")
-    private Byte age;
-
     @Schema(description = "头像url")
     @TableField("avatar_url")
     private String avatarUrl;
